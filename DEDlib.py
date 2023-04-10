@@ -47,17 +47,14 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
     pbar[row][row]=1
     return np.dot(pbar.T,np.dot(ham_mat,pbar)),sum([1 / len(select) / (omega - select[i] + 1.j * eta) for i, _ in enumerate(select)])
 
-def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma):
+def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma, H = 0):
     """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
 Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
-    H = 0
     for i in range(2):
         H += impenergy * (c[i].dag() * c[i])
         for j, _ in enumerate(bathenergy):
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+bathenergy[j] * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
-    H0=H.copy()
-    H += U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
-    return H0,H
+    return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
 def MBGAIM(omega, H, c, eta):
     """MBGAIM(omega, H, c, eta). 
@@ -93,12 +90,12 @@ Constraint implementation function for DED method with various possible constrai
     else:
         return MBGAIM(omega, H, c, eta),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,selectpT=[],nd=0):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,AvgSigmadat= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_')
+    omega,eta,AvgSigmadat,selectpcT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float')
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
-    selectpT,selectpcT,n,nd=[],np.zeros((N,poles),dtype = 'float'),sum([c[i].dag()*c[i] for i in range(2*poles)]),0
+    n=sum([c[i].dag()*c[i] for i in range(2*poles)])
     for i in tqdm(range(N)):
         reset = False
         while not reset:
@@ -112,23 +109,17 @@ The main DED function simulating the Anderson impurity model for given parameter
         selectpcT[i,:]=select
         AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS':
-        return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi, Lorentzian(omega,Gamma,poles)[0], omega,selectpT,selectpcT
-    else:
-        return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi, Lorentzian(omega,Gamma,poles,Ed,Sigma)[0], omega,selectpT,selectpcT
+    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
 Returns data regarding a defined graphene circular structure such as the corresponding Green's function."""
-    def plotsize(i):
-        return 0.208 if i == imp else 0.125
+    def plotsize(i): return 0.208 if i == imp else 0.125
     def family_color(i):
-        if i == imp:
-            return 'purple'
-        elif i<colorbnd:
-            return (31/255,119/255,180/255,255/255)
-        else:
-            return (255/255,127/255,14/255,255/255)
+        if i == imp: return 'purple'
+        elif i<colorbnd: return (31/255,119/255,180/255,255/255)
+        else: return (255/255,127/255,14/255,255/255)
     plt.figure(figsize=(10,8))
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
@@ -168,12 +159,12 @@ def Graphenecirclestruct(r=1.5, t=1):
     syst[lat.shape(circle, (0, 0))],syst[lat.neighbors()] = 0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,selectpT=[],nd=0):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,eta,AvgSigmadat= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_')
+    omega,eta,AvgSigmadat,selectpcT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float')
     c,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
-    selectpT,selectpcT,n,nd=[],np.zeros((N,poles),dtype = 'float'),sum([c[i].dag()*c[i] for i in range(2*poles)]),0
+    n=sum([c[i].dag()*c[i] for i in range(2*poles)])
     for i in tqdm(range(N)):
         reset = False
         while not reset:
@@ -182,15 +173,13 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
             NewM,nonG=Startrans(poles,select,0,omega,eta)
             (MBGdat,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
                                    NewM[0,1:], U,Sigma,omega,eta,c, n, ctype)
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(abs(i) >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)): reset=False
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(abs(i) >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)) or any(float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)): reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
         AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS':
-        return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
-    else:
-        return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat-Ed)))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]),nan=np.mean(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])[np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))[0]-1,np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))[0]+1])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat-Ed),nan=np.mean(1/(1/SPG-AvgSigmadat-Ed)[np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat-Ed)))[0]-1,np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat-Ed)))[0]+1])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
 
 def PolestoDOS(select,selectnon,ratio=200,bound=3):
     """PolestoDOS(select,selectnon,ratio=200). 
@@ -212,8 +201,7 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.rc('ytick', labelsize=25)
     axis_font = {'fontname':'Calibri', 'size':'25'}
     plt.xlim(min(omega), max(omega))
-    if not log:
-        plt.gca().set_ylim(bottom=0,top=1.2)
+    if not log: plt.gca().set_ylim(bottom=0,top=1.2)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
@@ -241,8 +229,7 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.rc('ytick', labelsize=18)
     axis_font = {'fontname':'Calibri', 'size':'18'}
     plt.xlim(min(omega), max(omega))
-    if not log:
-        plt.gca().set_ylim(bottom=0,top=1.2)
+    if not log: plt.gca().set_ylim(bottom=0,top=1.2)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
@@ -250,8 +237,7 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.xlabel("$\\omega$ [-]", **axis_font)
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom", rotation=0,labelpad=30,**axis_font)
     plt.plot(omega,rho0, '--',color='black',linewidth=4,label='$\\rho_0$')
-    for i,p in enumerate(plotp):
-        plt.plot(omegap[i,:p],DOST[i,:p],colors[i],linewidth=2,label=labels[i])
+    for i,p in enumerate(plotp): plt.plot(omegap[i,:p],DOST[i,:p],colors[i],linewidth=2,label=labels[i])
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
