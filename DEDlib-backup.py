@@ -22,8 +22,10 @@ def Jordan_wigner_transform(j, lattice_length):
 Defines the Jordan Wigner transformation for a 1D lattice."""
     operators = sigmaz()
     for _ in range(j-1): operators = tensor(operators, sigmaz())
-    if j == 0: operators = sigmam()
-    else: operators = tensor(operators, sigmam())
+    if j == 0:
+        operators = sigmam()
+    else:
+        operators = tensor(operators, sigmam())
     for _ in range(lattice_length - j - 1): operators = tensor(operators, identity(2))
     return operators
 
