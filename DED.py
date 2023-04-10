@@ -40,8 +40,8 @@ if __name__ == '__main__':
     {"N" : 200000, "poles" : 5, "U" : 3, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n'},
     {"N" : 200000, "poles" : 4, "U" : 3, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n%2'}]
     filenames,labelnames=['Lorentz2p0U','Lorentz2p3U','Lorentz3p3U','Lorentz4p3U','Lorentz5p3U','Lorentz4p3U%2N'],['$\\rho_0,\it{U=0,n=2}$','$\\rho_0,\it{U=3,n=2}$','$\\rho_0,\it{U=3,n=3}$','$\\rho_0,\it{U=3,n=4}$','$\\rho_0,\it{U=3,n=5}$','$\\rho_0,\it{U=3,n=4},N\\%$2']
-    DOST=np.zeros((len(filenames),int(input[-1]["N"]*input[-1]["poles"]/200)-1),dtype = 'float')
-    omegap=np.zeros((len(filenames),int(input[-1]["N"]*input[-1]["poles"]/200)-1),dtype = 'float')
+    DOST=np.zeros((len(filenames),int(input[-2]["N"]*input[-2]["poles"]/200)-1),dtype = 'float')
+    omegap=np.zeros((len(filenames),int(input[-2]["N"]*input[-2]["poles"]/200)-1),dtype = 'float')
     for i,file in enumerate(filenames):
         nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
         omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOSsm,DOSnon=DEDlib.PolestoDOS(np.ravel(selectpcT),np.ravel(selectpT))
@@ -111,7 +111,7 @@ if __name__ == '__main__':
             elif j<len(DOST)-1: input[i]['Sigma']=np.real(NewSigma[500])
         np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd',nd,delimiter='\t', newline='\n')
         DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+filenames[i],input[i]['Ed'],input[i]['Sigma'],DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
-
+    #Stop here###############################################################################
     #Interacting graphene impurity DOS of Anderson impurity model
     input=[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8},
             {"N" : 200000, "poles" : 4, "U" : 3.0, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n', "bound" : 8},
@@ -123,6 +123,7 @@ if __name__ == '__main__':
         DOST=np.zeros((len(filenames),4001),dtype = 'float')
         psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp[j],DEDlib.Graphenecirclestruct(r,1),colorbnd[j],'GrapheneCirc'+str(r)+'r')
         for i,file in enumerate(filenames):
+            if j==1: input[i]['ctype']='dn'
             nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**input[i])
             DEDlib.DOSplot(DOST[i], nonintrho, omega,file,labelnames[i],log=True)
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)

@@ -87,6 +87,14 @@ Constraint implementation function for DED method with various possible constrai
             return MBGAIM(omega, H, c, eta),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
+    elif ctype[0]=='d':
+        vecs=scipy.sparse.csr_matrix(np.vstack((scipy.linalg.eigh(H.data.toarray(),eigvals=[0, 0])[1][:,0],
+                                                scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
+        exp=np.conj(vecs)@n.data@vecs.T
+        if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
+            return MBGAIM(omega, H, c, eta),True
+        else:
+            return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
     else:
         return MBGAIM(omega, H, c, eta),True
 
