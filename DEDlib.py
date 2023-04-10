@@ -178,8 +178,8 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
         selectpcT[i,:]=select
         AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]),nan=np.mean(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])[np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))[0]-1,np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))[0]+1])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
-    else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat-Ed),nan=np.mean(1/(1/SPG-AvgSigmadat-Ed)[np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat-Ed)))[0]-1,np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat-Ed)))[0]+1])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]),nan=np.mean(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])[[np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))[0]-1,np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))])))[0]+1]])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(1/SPG-AvgSigmadat-Ed),nan=np.mean(1/(1/SPG-AvgSigmadat-Ed)[[np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat-Ed)))[0]-1,np.argwhere(np.isnan(1/(1/SPG-AvgSigmadat-Ed)))[0]+1]])))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
 
 def PolestoDOS(select,selectnon,ratio=200,bound=3):
     """PolestoDOS(select,selectnon,ratio=200). 
