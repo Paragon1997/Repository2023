@@ -56,25 +56,33 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+bathenergy[j] * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
-def MBGAIM(omega, H, c, eta):
+def MBGAIM(omega, H, c, eta,Tk=0):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
     evals, evecs =scipy.linalg.eigh(H.data.toarray())
-    vecn=np.conj(evecs[:,1:]).T
-    exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
-    return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
-                      abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
+    if Tk==0:
+        vecn=np.conj(evecs[:,1:]).T
+        exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
+        return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
+                        abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
+    else:
+        Z=-evals[0]/Tk
+        for _,Eval in enumerate(evals[1:]): Z = np.logaddexp(Z, -Eval/Tk)
+        vecn=np.conj(evecs).T
+        exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
+        return sum([( exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
+                        exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*np.exp(-evi/Tk-Z) for i,evi in enumerate(evals) for j,evj in enumerate(evals)]),evecs[:,0]
 
-def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype):
+def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk=[]):
     """AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype). 
 Gives Green's function for the impurity level in the full interacting system (up and down spin)."""
     H0,H= HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma)
     try:
-        return Constraint(ctype,H0,H,omega,eta,c,n)
+        return Constraint(ctype,H0,H,omega,eta,c,n,Tk)
     except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):
         return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
 
-def Constraint(ctype,H0,H,omega,eta,c,n):
+def Constraint(ctype,H0,H,omega,eta,c,n,Tk=[]):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype[0]=='n':
@@ -82,9 +90,11 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
-            return MBGAIM(omega, H, c, eta),True
+            return MBGAIM(omega, H, c, eta,Tk),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta),True
+            return MBGAIM(omega, H, c, eta,Tk),True
+        elif ctype=='nT' and np.round(exp[0,0])==np.round(exp[1,1]):
+            return [MBGAIM(omega, H, c, eta,T) for _,T in enumerate(Tk)],True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
     elif ctype[0]=='d':
@@ -92,18 +102,19 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta),True
+            return MBGAIM(omega, H, c, eta,Tk),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
     else:
-        return MBGAIM(omega, H, c, eta),True
+        return MBGAIM(omega, H, c, eta,Tk),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,selectpT=[],nd=0):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=[]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,AvgSigmadat,selectpcT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float')
+    omega,eta,selectpcTselectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
-    n=sum([c[i].dag()*c[i] for i in range(2*poles)])
+    if ctype=='nT': n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_')
+    else: n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros(SizeO,dtype = 'complex_')
     for i in tqdm(range(N)):
         reset = False
         while not reset:
@@ -115,9 +126,12 @@ The main DED function simulating the Anderson impurity model for given parameter
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)): reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
-        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
+        if ctype=='nT':
+            for j,_ in enumerate(Tk): AvgSigmadat[j]+=(1/nonG-1/MBGdat[j]+Sigma)/N
+        else: AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    if ctype=='nT':
+    elif Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
@@ -167,10 +181,10 @@ def Graphenecirclestruct(r=1.5, t=1):
     syst[lat.shape(circle, (0, 0))],syst[lat.neighbors()] = 0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,selectpT=[],nd=0):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,nd=0):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,eta,AvgSigmadat,selectpcT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float')
+    omega,eta,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
     c,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
     n=sum([c[i].dag()*c[i] for i in range(2*poles)])
     for i in tqdm(range(N)):
