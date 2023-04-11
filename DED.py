@@ -18,7 +18,6 @@ from itertools import repeat
 import DEDlib as DEDlib
 
 if __name__ == '__main__':
-    
     #Stop here###############################################################################
     #Interacting graphene impurity DOS of Anderson impurity model
     input=[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8},
@@ -53,7 +52,7 @@ if __name__ == '__main__':
         np.savetxt('GrapheneNR'+structname[k]+'nd',nd,delimiter='\t', newline='\n')
     
     #Temperature dependence interacting impurity DOS
-    Tk=[0.000000000001,0.001,0.01,0.1,1]
+    
     
     #add graphene U sim for all structures, vary t=1 to check impact nanoribbons
 
