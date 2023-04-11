@@ -98,10 +98,10 @@ Constraint implementation function for DED method with various possible constrai
     else:
         return MBGAIM(omega, H, c, eta),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,selectpT=[],nd=0):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,AvgSigmadat,selectpcT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float')
+    omega,eta,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
     n=sum([c[i].dag()*c[i] for i in range(2*poles)])
     for i in tqdm(range(N)):
@@ -129,6 +129,8 @@ Returns data regarding a defined graphene circular structure such as the corresp
         elif i<colorbnd: return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
     plt.figure(figsize=(10,8))
+    plt.ion()
+    plt.show()
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -136,7 +138,9 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plot=kwant.plot(fsyst,unit=1.2 ,hop_lw=0.05,site_size=plotsize,site_color=family_color,site_lw=0.02,fig_size=[10,8])
     plot.tight_layout()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
+
     plt.draw()
+    plt.pause(0.001)
     eig,P=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False))
     return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*(etaco[0]*abs(omega)+etaco[1])) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
@@ -167,10 +171,10 @@ def Graphenecirclestruct(r=1.5, t=1):
     syst[lat.shape(circle, (0, 0))],syst[lat.neighbors()] = 0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,selectpT=[],nd=0):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,nd=0):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,eta,AvgSigmadat,selectpcT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float')
+    omega,eta,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
     c,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
     n=sum([c[i].dag()*c[i] for i in range(2*poles)])
     for i in tqdm(range(N)):
@@ -203,6 +207,8 @@ def DOSplot(fDOS,Lor,omega,name,labels,log=False):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
+    plt.ion()
+    plt.show()
     plt.rc('legend', fontsize=17)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -221,9 +227,10 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
+    plt.ion()
+    plt.show()
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
-    plt.draw()
     return plt
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
@@ -231,6 +238,8 @@ def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
     plt.figure(figsize=(10,8))
+    plt.ion()
+    plt.show()
     plt.rc('legend', fontsize=18)
     plt.rc('font', size=18)
     plt.rc('xtick', labelsize=18)
@@ -249,9 +258,10 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
+    plt.ion()
+    plt.show()
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
-    plt.draw()
     return plt
 
 def textfileW(omega,selectpT,selectpcT,fDOS,name):
