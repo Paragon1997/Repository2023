@@ -67,16 +67,16 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
                         abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
     else:
         MGdat=np.zeros((len(Tk),len(omega)),dtype = 'complex_')
-        for _,T in enumerate(Tk):
+        for k,T in enumerate(Tk):
             Z=-evals[0]/T
-            for i,Eval in enumerate(evals[1:]): Z = np.logaddexp(Z, -Eval/T)
+            for _,Eval in enumerate(evals[1:]): Z = np.logaddexp(Z, -Eval/T)
             vecn=np.conj(evecs).T
             exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
-            MGdat[i,:]=sum([( exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
+            MGdat[k,:]=sum([(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
                         exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*np.exp(-evi/Tk-Z) for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
         return MGdat,evecs[:,0]
 
-def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk=[]):
+def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
     """AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype). 
 Gives Green's function for the impurity level in the full interacting system (up and down spin)."""
     H0,H= HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma)
@@ -85,7 +85,7 @@ Gives Green's function for the impurity level in the full interacting system (up
     except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):
         return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
 
-def Constraint(ctype,H0,H,omega,eta,c,n,Tk=[]):
+def Constraint(ctype,H0,H,omega,eta,c,n,Tk):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype[0]=='n':
@@ -126,7 +126,7 @@ The main DED function simulating the Anderson impurity model for given parameter
             NewM,nonG=Startrans(poles,select,0,omega,eta)
             (MBGdat,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
                                    NewM[0,1:], U,Sigma,omega,eta,c, n, ctype)
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)):
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any():
                 reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
