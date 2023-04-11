@@ -33,8 +33,8 @@ file=filenames[i]
 nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
 DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
-i=5
+""" i=5
 file=filenames[i]
 nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
 DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
-DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
+DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file) """
