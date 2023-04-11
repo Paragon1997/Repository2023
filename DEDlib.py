@@ -56,7 +56,7 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+bathenergy[j] * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
-def MBGAIM(omega, H, c, eta,Tk=0):
+def MBGAIM(omega, H, c, eta,Tk):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
     evals, evecs =scipy.linalg.eigh(H.data.toarray())
@@ -90,9 +90,9 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
-            return MBGAIM(omega, H, c, eta,Tk),True
+            return MBGAIM(omega, H, c, eta,0),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,Tk),True
+            return MBGAIM(omega, H, c, eta,0),True
         elif ctype=='nT' and np.round(exp[0,0])==np.round(exp[1,1]):
             return [MBGAIM(omega, H, c, eta,T) for _,T in enumerate(Tk)],True
         else:
@@ -102,11 +102,11 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,Tk),True
+            return MBGAIM(omega, H, c, eta,0),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
     else:
-        return MBGAIM(omega, H, c, eta,Tk),True
+        return MBGAIM(omega, H, c, eta,0),True
 
 def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=[]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
@@ -123,7 +123,8 @@ The main DED function simulating the Anderson impurity model for given parameter
             NewM,nonG=Startrans(poles,select,0,omega,eta)
             (MBGdat,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
                                    NewM[0,1:], U,Sigma,omega,eta,c, n, ctype)
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)): reset=False
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)):
+                reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
         if ctype=='nT':
@@ -143,6 +144,8 @@ Returns data regarding a defined graphene circular structure such as the corresp
         elif i<colorbnd: return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
     plt.figure(figsize=(10,8))
+    plt.show(block=False)
+    plt.ion()
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -151,6 +154,7 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plot.tight_layout()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
     plt.draw()
+    plt.pause(0.5)
     eig,P=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False))
     return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*(etaco[0]*abs(omega)+etaco[1])) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
@@ -217,6 +221,8 @@ def DOSplot(fDOS,Lor,omega,name,labels,log=False):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
+    plt.show(block=False)
+    plt.ion()
     plt.rc('legend', fontsize=17)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -238,6 +244,7 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
+    plt.pause(0.5)
     return plt
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
@@ -245,6 +252,8 @@ def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
     plt.figure(figsize=(10,8))
+    plt.show(block=False)
+    plt.ion()
     plt.rc('legend', fontsize=18)
     plt.rc('font', size=18)
     plt.rc('xtick', labelsize=18)
@@ -266,6 +275,7 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
+    plt.pause(0.5)
     return plt
 
 def textfileW(omega,selectpT,selectpcT,fDOS,name):
