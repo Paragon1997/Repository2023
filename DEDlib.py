@@ -68,12 +68,11 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
     else:
         MGdat=np.zeros((len(Tk),len(omega)),dtype = 'complex_')
         for k,T in enumerate(Tk):
-            Z=-evals[0]/T
-            for _,Eval in enumerate(evals[1:]): Z = np.logaddexp(Z, -Eval/T)
+            eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
             vecn=np.conj(evecs).T
             exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
             MGdat[k,:]=sum([(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
-                        exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*np.exp(-evi/Tk-Z) for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
+                        exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i] for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
         return MGdat,evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
