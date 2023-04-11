@@ -92,10 +92,8 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
-            return MBGAIM(omega, H, c, eta,0),True
+            return MBGAIM(omega, H, c, eta,Tk),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,0),True
-        elif ctype=='nT' and np.round(exp[0,0])==np.round(exp[1,1]):
             return MBGAIM(omega, H, c, eta,Tk),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
@@ -104,13 +102,13 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,0),True
+            return MBGAIM(omega, H, c, eta,Tk),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
     else:
-        return MBGAIM(omega, H, c, eta,0),True
+        return MBGAIM(omega, H, c, eta,Tk),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=[]):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=0):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
@@ -124,7 +122,7 @@ The main DED function simulating the Anderson impurity model for given parameter
             else: select=sorted(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1])
             NewM,nonG=Startrans(poles,select,0,omega,eta)
             (MBGdat,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
-                                   NewM[0,1:], U,Sigma,omega,eta,c, n, ctype)
+                                   NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any():
                 reset=False
             selectpT.append(select)
@@ -146,8 +144,6 @@ Returns data regarding a defined graphene circular structure such as the corresp
         elif i<colorbnd: return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
     plt.figure(figsize=(10,8))
-    plt.show(block=False)
-    plt.ion()
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -223,8 +219,6 @@ def DOSplot(fDOS,Lor,omega,name,labels,log=False):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
-    plt.show(block=False)
-    plt.ion()
     plt.rc('legend', fontsize=17)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -254,8 +248,6 @@ def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
     plt.figure(figsize=(10,8))
-    plt.show(block=False)
-    plt.ion()
     plt.rc('legend', fontsize=18)
     plt.rc('font', size=18)
     plt.rc('xtick', labelsize=18)
