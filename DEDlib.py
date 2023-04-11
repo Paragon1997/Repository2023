@@ -66,12 +66,15 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
                         abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
     else:
-        Z=-evals[0]/Tk
-        for _,Eval in enumerate(evals[1:]): Z = np.logaddexp(Z, -Eval/Tk)
-        vecn=np.conj(evecs).T
-        exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
-        return sum([( exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
-                        exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*np.exp(-evi/Tk-Z) for i,evi in enumerate(evals) for j,evj in enumerate(evals)]),evecs[:,0]
+        MGdat=np.zeros((len(Tk),len(omega)),dtype = 'complex_')
+        for _,T in enumerate(Tk):
+            Z=-evals[0]/T
+            for i,Eval in enumerate(evals[1:]): Z = np.logaddexp(Z, -Eval/T)
+            vecn=np.conj(evecs).T
+            exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
+            MGdat[i,:]=sum([( exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
+                        exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*np.exp(-evi/Tk-Z) for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
+        return MGdat,evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk=[]):
     """AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype). 
@@ -94,7 +97,7 @@ Constraint implementation function for DED method with various possible constrai
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
             return MBGAIM(omega, H, c, eta,0),True
         elif ctype=='nT' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return [MBGAIM(omega, H, c, eta,T) for _,T in enumerate(Tk)],True
+            return MBGAIM(omega, H, c, eta,Tk),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
     elif ctype[0]=='d':
