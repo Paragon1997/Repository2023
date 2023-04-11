@@ -108,10 +108,10 @@ Constraint implementation function for DED method with various possible constrai
     else:
         return MBGAIM(omega, H, c, eta,Tk),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=[]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
+    omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
     if ctype=='nT': n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_')
     else: n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros(SizeO,dtype = 'complex_')
@@ -130,8 +130,8 @@ The main DED function simulating the Anderson impurity model for given parameter
             for j,_ in enumerate(Tk): AvgSigmadat[j]+=(1/nonG-1/MBGdat[j]+Sigma)/N
         else: AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    #if ctype=='nT':
-    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    if ctype=='nT': return np.real(nd),AvgSigmadat,[-np.imag(np.nan_to_num(1/(omega-AvgS-Ed+1j*Gamma)))/np.pi for _,AvgS in enumerate(AvgSigmadat)]
+    elif Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
@@ -143,8 +143,6 @@ Returns data regarding a defined graphene circular structure such as the corresp
         elif i<colorbnd: return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
     plt.figure(figsize=(10,8))
-    plt.ion()
-    plt.show()
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -152,9 +150,7 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plot=kwant.plot(fsyst,unit=1.2 ,hop_lw=0.05,site_size=plotsize,site_color=family_color,site_lw=0.02,fig_size=[10,8])
     plot.tight_layout()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
-
     plt.draw()
-    plt.pause(0.001)
     eig,P=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False))
     return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*(etaco[0]*abs(omega)+etaco[1])) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
@@ -221,8 +217,6 @@ def DOSplot(fDOS,Lor,omega,name,labels,log=False):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
-    plt.ion()
-    plt.show()
     plt.rc('legend', fontsize=17)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -241,10 +235,9 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-    plt.ion()
-    plt.show()
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
+    plt.draw()
     return plt
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
@@ -252,8 +245,6 @@ def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
     plt.figure(figsize=(10,8))
-    plt.ion()
-    plt.show()
     plt.rc('legend', fontsize=18)
     plt.rc('font', size=18)
     plt.rc('xtick', labelsize=18)
@@ -272,10 +263,9 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-    plt.ion()
-    plt.show()
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
+    plt.draw()
     return plt
 
 def textfileW(omega,selectpT,selectpcT,fDOS,name):
