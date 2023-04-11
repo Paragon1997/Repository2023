@@ -47,7 +47,7 @@ if __name__ == '__main__':
         omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOSsm,DOSnon=DEDlib.PolestoDOS(np.ravel(selectpcT),np.ravel(selectpT))
         DEDlib.DOSplot(DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1], DEDlib.Lorentzian(omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],0.3,4)[0], omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],file,labelnames[i])
         DEDlib.textfileW(omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],np.ravel(selectpT),np.ravel(selectpcT),DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],file)
-    DEDlib.DOSmultiplot(omega,omegap,DOST,[int(input[i]["N"]*input[i]["poles"]/200)-1 for i,_ in enumerate(filenames)],labelnames,'selection',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
+    DEDlib.DOSmultiplot(omega,omegap,DOST,[int(input[i]["N"]*input[i]["poles"]/200)-1 for i,_ in enumerate(filenames)],labelnames,'selection',Lor)
 
     # Interacting impurity DOS for different Coulomb repulsion strengths characterized by different values of U
     input=[{"N" : 200000, "poles" : 4, "U" : 0, "Sigma" : 0, "Ed" : 0, "ctype" : 'n'},
@@ -91,7 +91,9 @@ if __name__ == '__main__':
         nd, _, DOST[i], Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
         DEDlib.DOSplot(DOST[i], Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
-    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'etatotal',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
+    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'etatotal',Lor)
+
+    #Stop here############################################################################### multi plot lorentz changed
 
     # Interacting DOS of asymmetric Anderson impurity model
     input=[{"N" : 200000, "poles" : 4, "Ed" : -1.5, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4},
@@ -110,8 +112,8 @@ if __name__ == '__main__':
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[500]),rtol=5e-4, atol=1e-06): break
             elif j<len(DOST)-1: input[i]['Sigma']=np.real(NewSigma[500])
         np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd',nd,delimiter='\t', newline='\n')
-        DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+filenames[i],input[i]['Ed'],input[i]['Sigma'],DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
-    #Stop here###############################################################################
+        DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+filenames[i],input[i]['Ed'],input[i]['Sigma'],DEDlib.Lorentzian(omega,0.3,4,input[i]["Ed"],3/2)[0])
+
     #Interacting graphene impurity DOS of Anderson impurity model
     input=[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8},
             {"N" : 200000, "poles" : 4, "U" : 3.0, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n', "bound" : 8},
@@ -145,7 +147,22 @@ if __name__ == '__main__':
         np.savetxt('GrapheneNR'+structname[k]+'nd',nd,delimiter='\t', newline='\n')
     
     #Temperature dependence interacting impurity DOS
-    Tk=[0.000000000001,0.001,0.01,0.1,1]
+    input={"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,1]}
+    filenames,labelnames=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000]
+    nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input)
+    for i,file in enumerate(filenames):
+        DEDlib.DOSplot(fDOS[i], Lor, omega,file,labelnames[i])
+        DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS[i],file)
+    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(input["Tk"]),1)),fDOS,np.tile(len(omega), len(input["Tk"])),labelnames,'Ttotal',Lor)
+
+    #Check noconstraint n=5,6
+    input=[{"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : ' '},
+    {"N" : 20000, "poles" : 6, "Ed" : -3/2, "ctype" : ' '}]
+    filenames,labelnames=['noconstraintN5p','noconstraintN6p'],['$\\rho_{no constr.},$n=5','$\\rho_{no constr.},$n=6']
+    for i,file in enumerate(filenames):
+        nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
+        DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     
     #add graphene U sim for all structures, vary t=1 to check impact nanoribbons
 

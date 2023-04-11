@@ -60,20 +60,20 @@ def MBGAIM(omega, H, c, eta,Tk):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
     evals, evecs =scipy.linalg.eigh(H.data.toarray())
-    if Tk==0:
+    if Tk==[0]:
         vecn=np.conj(evecs[:,1:]).T
         exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
         return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
                         abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
     else:
-        MGdat=np.zeros((len(Tk),len(omega)),dtype = 'complex_')
+        MGdat,eta[int(np.round(len(eta)/2))]=np.zeros((len(Tk),len(omega)),dtype = 'complex_'),0.000001
         for k,T in enumerate(Tk):
             eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
             vecn=np.conj(evecs).T
             exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
             MGdat[k,:]=sum([(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
                         exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i] for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
-        return MGdat,evecs[:,0]
+        return MGdat.squeeze(),evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
     """AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype). 
@@ -108,13 +108,12 @@ Constraint implementation function for DED method with various possible constrai
     else:
         return MBGAIM(omega, H, c, eta,Tk),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=0):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=[0]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
-    if ctype=='nT': n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_')
-    else: n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros(SizeO,dtype = 'complex_')
+    n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_').squeeze()
     for i in tqdm(range(N)):
         reset = False
         while not reset:
@@ -127,12 +126,9 @@ The main DED function simulating the Anderson impurity model for given parameter
                 reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
-        if ctype=='nT':
-            for j,_ in enumerate(Tk): AvgSigmadat[j]+=(1/nonG-1/MBGdat[j]+Sigma)/N
-        else: AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
+        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if ctype=='nT': return np.real(nd),AvgSigmadat,[-np.imag(np.nan_to_num(1/(omega-AvgS-Ed+1j*Gamma)))/np.pi for _,AvgS in enumerate(AvgSigmadat)]
-    elif Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
