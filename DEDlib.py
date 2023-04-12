@@ -117,6 +117,10 @@ The main DED function simulating the Anderson impurity model for given parameter
         selectpcT[i,:]=select
         AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
+<<<<<<< HEAD
+=======
+    #if ctype=='nT':
+>>>>>>> 63e8c354de7d9d9d7b50a973847e4d0fe134fee0
     if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
