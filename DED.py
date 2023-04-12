@@ -144,15 +144,22 @@ if __name__ == '__main__':
             DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneNR'+structname[k]+str(imp)+'pos',nonintrho,log=True)
         np.savetxt('GrapheneNR'+structname[k]+'nd',nd,delimiter='\t', newline='\n')
     
-    #Temperature dependence interacting impurity DOS
-    input={"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,1]}
-    filenames,labelnames=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000]
-    nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input)
-    for i,file in enumerate(filenames):
-        DEDlib.DOSplot(fDOS[i], Lor, omega,file,labelnames[i])
-        DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS[i],file)
-    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(input["Tk"]),1)),fDOS,np.tile(len(omega), len(input["Tk"])),labelnames,'Ttotal',Lor)
+    #Stop here###############################################################################
 
+    #Temperature dependence interacting impurity DOS
+    input=[{"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,1]},
+    {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : ' ', "Tk" : [0.000000000001,0.001,0.01,0.1,1]}]
+    filenames,labelnames,conname=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000],['','no']
+    DOST=np.zeros((len(input),len(input[0]["Tk"]),1001),dtype = 'complex_')
+    for j,inpt in enumerate(input):
+        nd, _, DOST[j], Lor, omega, selectpT, selectpcT=DEDlib.main(**inpt)
+        for i,file in enumerate(filenames):
+            DEDlib.DOSplot(DOST[j][i], Lor, omega,conname[j]+file,labelnames[i])
+            DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[j][i],conname[j]+file)
+        DEDlib.DOSmultiplot(omega,np.tile(omega, (len(input[0]["Tk"]),1)),DOST[j],np.tile(len(omega), len(input[0]["Tk"])),labelnames,conname[j]+'Ttotal',Lor)
+    conlabel,fDOS=['$\it{k_bT= %.0f}$, (constr.)'%0,'$\it{k_bT= %.0f}$, (no constr.)'%0,'$\it{k_bT= %.0f}$, (constr.)'%1,'$\it{k_bT= %.0f}$, (no constr.)'%1],[DOST[0][0],DOST[1][0],DOST[0][4],DOST[1][4]]
+    DEDlib.DOSmultiplot(omega,np.tile(omega, (4,1)),fDOS,np.tile(len(omega), 4),conlabel,'constrTtotal',Lor)
+    
     #Check noconstraint n=5,6
     input=[{"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : ' '},
     {"N" : 20000, "poles" : 6, "Ed" : -3/2, "ctype" : ' '}]
