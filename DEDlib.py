@@ -117,10 +117,6 @@ The main DED function simulating the Anderson impurity model for given parameter
         selectpcT[i,:]=select
         AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
         nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-<<<<<<< HEAD
-=======
-    #if ctype=='nT':
->>>>>>> 63e8c354de7d9d9d7b50a973847e4d0fe134fee0
     if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
@@ -142,9 +138,8 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plot=kwant.plot(fsyst,unit=1.2 ,hop_lw=0.05,site_size=plotsize,site_color=family_color,site_lw=0.02,fig_size=[10,8])
     plot.tight_layout()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
-
     plt.draw()
-    plt.pause(0.001)
+    plt.pause(0.5)
     eig,P=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False))
     return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*(etaco[0]*abs(omega)+etaco[1])) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
@@ -231,8 +226,8 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-    plt.ion()
-    plt.show()
+    plt.draw()
+    plt.pause(0.5)
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     return plt
@@ -262,8 +257,8 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-    plt.ion()
-    plt.show()
+    plt.draw()
+    plt.pause(0.5)
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     return plt
