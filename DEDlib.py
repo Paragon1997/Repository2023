@@ -66,7 +66,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
                         abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
     else:
-        MGdat,eta[int(np.round(len(eta)/2))]=np.zeros((len(Tk),len(omega)),dtype = 'complex_'),0.001
+        MGdat,eta[int(np.round(len(eta)/2))]=np.zeros((len(Tk),len(omega)),dtype = 'complex_'),0.0001
         for k,T in enumerate(Tk):
             eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
             vecn=np.conj(evecs).T

@@ -112,7 +112,7 @@ if __name__ == '__main__':
         np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd',nd,delimiter='\t', newline='\n')
         DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+filenames[i],input[i]['Ed'],input[i]['Sigma'],DEDlib.Lorentzian(omega,0.3,4,input[i]['Ed'],3/2)[0])
 
-    #Interacting graphene impurity DOS of Anderson impurity model
+    #Interacting graphene impurity DOS and Interacting graphene nanoribbon center/edge DOS of Anderson impurity model
     input=[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8},
             {"N" : 200000, "poles" : 4, "U" : 3.0, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n', "bound" : 8},
             {"N" : 200000, "poles" : 4, "U" : 4.5, "Sigma" : 2.25, "Ed" : -4.5/2, "ctype" : 'n', "bound" : 8},
@@ -129,8 +129,6 @@ if __name__ == '__main__':
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
         DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneCirc'+str(r)+'r',nonintrho,log=True)
     np.savetxt('GrapheneCircnd',nd,delimiter='\t', newline='\n')
-    
-    #Interacting graphene nanoribbon center/edge DOS of Anderson impurity model
     posimp,func,args,colorbnd,structname,nd=[[85,248],[74,76]],[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,4),dtype = 'float')
     for k,pos in enumerate(posimp):
         for j,imp in enumerate(pos):
