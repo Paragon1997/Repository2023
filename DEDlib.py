@@ -52,8 +52,8 @@ def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma, H = 0):
 Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
     for i in range(2):
         H += impenergy * (c[i].dag() * c[i])
-        for j, _ in enumerate(bathenergy):
-            H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+bathenergy[j] * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
+        for j, bathE in enumerate(bathenergy):
+            H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+ bathE * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
 def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001):
@@ -100,8 +100,7 @@ Constraint implementation function for DED method with various possible constrai
             evals, evecs =scipy.linalg.eigh(H.data.toarray())
             expb=np.conj(evecs)@n.data@evecs.T
             #E0=evals[np.absolute(np.around(np.diag(expb))-np.round(exp[0,0])).argmin()]
-            Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(expb),exp[0,0])]-evals[0])/Tk)
-            return MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals, evecs),True
+            return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(expb),exp[0,0])]-evals[0])/Tk),evals, evecs,0.001),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':
