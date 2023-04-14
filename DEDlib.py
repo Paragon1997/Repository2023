@@ -99,8 +99,8 @@ Constraint implementation function for DED method with various possible constrai
         elif ctype=='nb':
             evals, evecs =scipy.linalg.eigh(H.data.toarray())
             expb=np.conj(evecs)@n.data@evecs.T
-            E0=evals[np.absolute(np.around(np.diag(expb))-np.round(exp[0,0])).argmin()]
-            Boltzmann=np.exp(-abs(E0-evals[0])/Tk)
+            #E0=evals[np.absolute(np.around(np.diag(expb))-np.round(exp[0,0])).argmin()]
+            Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(expb),exp[0,0])]-evals[0])/Tk)
             return MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals, evecs),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
@@ -114,6 +114,9 @@ Constraint implementation function for DED method with various possible constrai
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     else:
         return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
+    
+def find_nearest(array,value):
+    for i in (i for i,arrval in enumerate(array) if np.isclose(arrval, value, atol=0.1)): return i
 
 def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,Tk=[0]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
