@@ -131,8 +131,7 @@ The main DED function simulating the Anderson impurity model for given parameter
             NewM,nonG=Startrans(poles,select,0,omega,eta)
             (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
                                    NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any():
-                reset=False
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
         Nfin+=Boltzmann
