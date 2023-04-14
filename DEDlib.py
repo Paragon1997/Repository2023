@@ -98,9 +98,7 @@ Constraint implementation function for DED method with various possible constrai
             return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
         elif ctype=='nb':
             evals, evecs =scipy.linalg.eigh(H.data.toarray())
-            expb=np.conj(evecs)@n.data@evecs.T
-            #E0=evals[np.absolute(np.around(np.diag(expb))-np.round(exp[0,0])).argmin()]
-            return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(expb),exp[0,0])]-evals[0])/Tk),evals, evecs,0.001),True
+            return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs)@n.data@evecs.T),exp[0,0])]-evals[0])/Tk),evals, evecs,0.001),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':

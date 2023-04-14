@@ -21,13 +21,13 @@ from numba import jit
 import DEDlib
 
 
-input={"N" : 2000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : ' ', "Tk" : [1]}
-filenames,labelnames=['cN4pT1e-12'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000]
+input={"N" : 8000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-20], "ctype" : ' ', "Tk" : [1]}
+filenames,labelnames=['cN4pT1e-12test'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000]
 nd, avgS, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input)
 for i,file in enumerate(filenames):
     DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
     DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
-DEDlib.DOSmultiplot(omega,np.tile(omega, (len(input["Tk"]),1)),fDOS,np.tile(len(omega), len(input["Tk"])),labelnames,'Ttotal',Lor)
+
 
 
 """"input=[{"N" : 200000, "poles" : 2, "Ed" : -3/2, "ctype" : 'n'},
