@@ -56,24 +56,25 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+bathenergy[j] * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
-def MBGAIM(omega, H, c, eta,Tk):
+def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[]):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
-    evals, evecs =scipy.linalg.eigh(H.data.toarray())
+    if evals==[]: evals, evecs =scipy.linalg.eigh(H.data.toarray())
     if Tk==[0]:
         vecn=np.conj(evecs[:,1:]).T
         exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
         return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
-                        abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
+                        abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),1,evecs[:,0]
     else:
         MGdat,eta[int(np.round(len(eta)/2))]=np.zeros((len(Tk),len(omega)),dtype = 'complex_'),0.0001
         for k,T in enumerate(Tk):
-            eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
-            vecn=np.conj(evecs).T
-            exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
-            MGdat[k,:]=sum([(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
-                        exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i] for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
-        return MGdat.squeeze(),evecs[:,0]
+            if Boltzmann[k]!=0:
+                eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
+                vecn=np.conj(evecs).T
+                exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
+                MGdat[k,:]=sum([(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
+                            exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i] for i,evi in enumerate(evals) for j,evj in enumerate(evals)])*Boltzmann[k]
+        return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
     """AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype). 
@@ -82,7 +83,7 @@ Gives Green's function for the impurity level in the full interacting system (up
     try:
         return Constraint(ctype,H0,H,omega,eta,c,n,Tk)
     except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):
-        return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
+        return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
 
 def Constraint(ctype,H0,H,omega,eta,c,n,Tk):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
@@ -92,44 +93,51 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
-            return MBGAIM(omega, H, c, eta,Tk),True
+            return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,Tk),True
+            return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
+        elif ctype=='nb':
+            evals, evecs =scipy.linalg.eigh(H.data.toarray())
+            expb=np.conj(evecs)@n.data@evecs.T
+            E0=evals[np.absolute(np.around(np.diag(expb))-np.round(exp[0,0])).argmin()]
+            Boltzmann=np.exp(-abs(E0-evals[0])/Tk)
+            return MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals, evecs),True
         else:
-            return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
+            return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.linalg.eigh(H.data.toarray(),eigvals=[0, 0])[1][:,0],
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,Tk),True
+            return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
         else:
-            return (np.zeros(len(omega),dtype = 'complex_'),np.array([])),False
+            return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     else:
-        return MBGAIM(omega, H, c, eta,Tk),True
+        return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,nd=0,Tk=[0]):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,Tk=[0]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
-    n,AvgSigmadat=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_').squeeze()
+    n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'float'),np.zeros(len(Tk),dtype = 'complex_')
     for i in tqdm(range(N)):
         reset = False
         while not reset:
             if Ed == 'AS': select=sorted(Lorentzian(omega, Gamma, poles)[1])
             else: select=sorted(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1])
             NewM,nonG=Startrans(poles,select,0,omega,eta)
-            (MBGdat,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
+            (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
                                    NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any():
                 reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
-        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
-        nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
-    else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
+        Nfin+=Boltzmann
+        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)
+        nd+=np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
+    if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+AvgSigmadat[int(np.round(SizeO/2))]/Nfin[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
