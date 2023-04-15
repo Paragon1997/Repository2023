@@ -56,7 +56,6 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+ bathE * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
-<<<<<<< HEAD
 def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
@@ -78,18 +77,6 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
-=======
-def MBGAIM(omega, H, c, eta):
-    """MBGAIM(omega, H, c, eta). 
-Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
-    evals, evecs =scipy.linalg.eigh(H.data.toarray())
-    vecn=np.conj(evecs[:,1:]).T
-    exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
-    return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
-                      abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),evecs[:,0]
-
-def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype):
->>>>>>> main
     """AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype). 
 Gives Green's function for the impurity level in the full interacting system (up and down spin)."""
     H0,H= HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma)
@@ -98,11 +85,7 @@ Gives Green's function for the impurity level in the full interacting system (up
     except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):
         return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
 
-<<<<<<< HEAD
 def Constraint(ctype,H0,H,omega,eta,c,n,Tk):
-=======
-def Constraint(ctype,H0,H,omega,eta,c,n):
->>>>>>> main
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype=='snb':
@@ -114,15 +97,9 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
-<<<<<<< HEAD
             return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
             return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
-=======
-            return MBGAIM(omega, H, c, eta),True
-        elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta),True
->>>>>>> main
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':
@@ -130,33 +107,21 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
         if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
-<<<<<<< HEAD
             return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
-=======
-            return MBGAIM(omega, H, c, eta),True
->>>>>>> main
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     else:
-<<<<<<< HEAD
         return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
     
 def find_nearest(array,value):
     for i in (i for i,arrval in enumerate(array) if np.isclose(arrval, value, atol=0.1)): return i
-=======
-        return MBGAIM(omega, H, c, eta),True
->>>>>>> main
 
 def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,Tk=[0]):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
     c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
-<<<<<<< HEAD
     n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'float'),np.zeros(len(Tk),dtype = 'complex_')
-=======
-    n=sum([c[i].dag()*c[i] for i in range(2*poles)])
->>>>>>> main
     for i in tqdm(range(N)):
         reset = False
         while not reset:
@@ -168,18 +133,11 @@ The main DED function simulating the Anderson impurity model for given parameter
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
-<<<<<<< HEAD
         Nfin+=Boltzmann
         AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)
         nd+=np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
     if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+AvgSigmadat[int(np.round(SizeO/2))]/Nfin[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
-=======
-        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
-        nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
-    else: return np.real(nd),AvgSigmadat,-np.imag(np.nan_to_num(1/(omega-AvgSigmadat-Ed+1j*Gamma)))/np.pi,Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
->>>>>>> main
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
@@ -283,11 +241,6 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-<<<<<<< HEAD
-=======
-    plt.draw()
-    plt.pause(0.5)
->>>>>>> main
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
@@ -317,11 +270,6 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-<<<<<<< HEAD
-=======
-    plt.draw()
-    plt.pause(0.5)
->>>>>>> main
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
