@@ -134,9 +134,9 @@ The main DED function simulating the Anderson impurity model for given parameter
             selectpT.append(select)
         selectpcT[i,:]=select
         Nfin+=Boltzmann
-        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)
+        AvgSigmadat+=1/nonG-1/MBGdat+Sigma
         nd+=np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+AvgSigmadat[int(np.round(SizeO/2))]/Nfin[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
@@ -187,27 +187,28 @@ def Graphenecirclestruct(r=1.5, t=1):
     syst[lat.shape(circle, (0, 0))],syst[lat.neighbors()] = 0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,nd=0):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,nd=0,Tk=[0]):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,eta,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
-    c,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
-    n=sum([c[i].dag()*c[i] for i in range(2*poles)])
+    omega,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
+    c,eta,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],etaco[0]*abs(omega)+etaco[1],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
+    n,AvgSigmadat,Nfin=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'complex_')
     for i in tqdm(range(N)):
         reset = False
         while not reset:
             if eigsel: select=sorted(np.random.choice(eig, poles,p=psi,replace=False))
             else: select=sorted(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False))
             NewM,nonG=Startrans(poles,select,0,omega,eta)
-            (MBGdat,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
-                                   NewM[0,1:], U,Sigma,omega,eta,c, n, ctype)
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or any(abs(i) >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)) or any(float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)): reset=False
+            (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
+                                   NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
         selectpcT[i,:]=select
-        AvgSigmadat+=(1/nonG-1/MBGdat+Sigma)/N
-        nd+=1/N*np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
-    if Ed == 'AS': return np.real(nd),AvgSigmadat,-np.imag(1/(1/SPG-AvgSigmadat+AvgSigmadat[int(np.round(SizeO/2))]))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
-    else: return np.real(nd),AvgSigmadat,-np.imag(1/(1/SPG-AvgSigmadat-Ed))/np.pi,-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+        Nfin+=Boltzmann
+        AvgSigmadat+=1/nonG-1/MBGdat+Sigma
+        nd+=np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
+    if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
 
 def PolestoDOS(select,selectnon,ratio=200,bound=3):
     """PolestoDOS(select,selectnon,ratio=200). 
