@@ -47,7 +47,7 @@ if __name__ == '__main__':
         omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOSsm,DOSnon=DEDlib.PolestoDOS(np.ravel(selectpcT),np.ravel(selectpT))
         DEDlib.DOSplot(DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1], DEDlib.Lorentzian(omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],0.3,4)[0], omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],file,labelnames[i])
         DEDlib.textfileW(omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],np.ravel(selectpT),np.ravel(selectpcT),DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],file)
-    DEDlib.DOSmultiplot(omega,omegap,DOST,[int(input[i]["N"]*input[i]["poles"]/200)-1 for i,_ in enumerate(filenames)],labelnames,'selection',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
+    DEDlib.DOSmultiplot(omega,omegap,DOST,[int(input[i]["N"]*input[i]["poles"]/200)-1 for i,_ in enumerate(filenames)],labelnames,'selection',Lor)
 
     # Interacting impurity DOS for different Coulomb repulsion strengths characterized by different values of U
     input=[{"N" : 200000, "poles" : 4, "U" : 0, "Sigma" : 0, "Ed" : 0, "ctype" : 'n'},
@@ -91,7 +91,7 @@ if __name__ == '__main__':
         nd, _, DOST[i], Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
         DEDlib.DOSplot(DOST[i], Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
-    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'etatotal',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
+    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'etatotal',Lor)
 
     # Interacting DOS of asymmetric Anderson impurity model
     input=[{"N" : 200000, "poles" : 4, "Ed" : -1.5, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4},
@@ -110,42 +110,69 @@ if __name__ == '__main__':
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[500]),rtol=5e-4, atol=1e-06): break
             elif j<len(DOST)-1: input[i]['Sigma']=np.real(NewSigma[500])
         np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd',nd,delimiter='\t', newline='\n')
-        DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+filenames[i],input[i]['Ed'],input[i]['Sigma'],DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
-    #Stop here###############################################################################
-    #Interacting graphene impurity DOS of Anderson impurity model
-    input=[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8},
-            {"N" : 200000, "poles" : 4, "U" : 3.0, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n', "bound" : 8},
-            {"N" : 200000, "poles" : 4, "U" : 4.5, "Sigma" : 2.25, "Ed" : -4.5/2, "ctype" : 'n', "bound" : 8},
-            {"N" : 200000, "poles" : 4, "U" : 6.0, "Sigma" : 3.0, "Ed" : -6/2, "ctype" : 'n', "bound" : 8}]
-    radius,colorbnd,imp,nd=[1.5,2.3,3.1,4.042,5.1],[7,19,37,61,91],[3,9,18,30,45],np.zeros((5,4),dtype = 'float')
-    for j,r in enumerate(radius):
-        filenames,labelnames=['GrapheneCirc'+str(r)+'r1_5U','GrapheneCirc'+str(r)+'r3U','GrapheneCirc'+str(r)+'r4_5U','GrapheneCirc'+str(r)+'r6U'],['$\it{U=1.5}$','$\it{U=3.0}$','$\it{U=4.5}$','$\it{U=6.0}$']
-        DOST=np.zeros((len(filenames),4001),dtype = 'float')
-        psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp[j],DEDlib.Graphenecirclestruct(r,1),colorbnd[j],'GrapheneCirc'+str(r)+'r')
-        for i,file in enumerate(filenames):
-            if j==1: input[i]['ctype']='dn'
-            nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**input[i])
-            DEDlib.DOSplot(DOST[i], nonintrho, omega,file,labelnames[i],log=True)
-            DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
-        DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneCirc'+str(r)+'r',nonintrho,log=True)
-    np.savetxt('GrapheneCircnd',nd,delimiter='\t', newline='\n')
-    
-    #Interacting graphene nanoribbon center/edge DOS of Anderson impurity model
-    posimp,func,args,colorbnd,structname,nd=[[85,248],[74,76]],[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,4),dtype = 'float')
-    for k,pos in enumerate(posimp):
-        for j,imp in enumerate(pos):
-            filenames,labelnames=['GrapheneNR'+structname[k]+str(imp)+'pos1_5U','GrapheneNR'+structname[k]+str(imp)+'pos3U','GrapheneNR'+structname[k]+str(imp)+'pos4_5U','GrapheneNR'+structname[k]+str(imp)+'pos6U'],['$\it{U=1.5}$','$\it{U=3.0}$','$\it{U=4.5}$','$\it{U=6.0}$']
+        DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+filenames[i],input[i]['Ed'],input[i]['Sigma'],DEDlib.Lorentzian(omega,0.3,4,input[i]['Ed'],3/2)[0])
+
+    #Interacting graphene impurity DOS and Interacting graphene nanoribbon center/edge DOS of Anderson impurity model
+    input=[[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8, "eigsel" : False},
+            {"N" : 200000, "poles" : 4, "U" : 3.0, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n', "bound" : 8, "eigsel" : False},
+            {"N" : 200000, "poles" : 4, "U" : 4.5, "Sigma" : 2.25, "Ed" : -4.5/2, "ctype" : 'n', "bound" : 8, "eigsel" : False},
+            {"N" : 200000, "poles" : 4, "U" : 6.0, "Sigma" : 3.0, "Ed" : -6/2, "ctype" : 'n', "bound" : 8, "eigsel" : False}],
+            [{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8, "eigsel" : True},
+            {"N" : 200000, "poles" : 4, "U" : 3.0, "Sigma" : 1.5, "Ed" : -3/2, "ctype" : 'n', "bound" : 8, "eigsel" : True},
+            {"N" : 200000, "poles" : 4, "U" : 4.5, "Sigma" : 2.25, "Ed" : -4.5/2, "ctype" : 'n', "bound" : 8, "eigsel" : True},
+            {"N" : 200000, "poles" : 4, "U" : 6.0, "Sigma" : 3.0, "Ed" : -6/2, "ctype" : 'n', "bound" : 8, "eigsel" : True}]]
+    for l,inp in enumerate(input):
+        radius,colorbnd,ip,nd,selecm=[1.5,2.3,3.1,4.042,5.1],[7,19,37,61,91],[3,9,18,30,45],np.zeros((5,4),dtype = 'float'),['','eigval']
+        for j,r in enumerate(radius):
+            filenames,labelnames=['GrapheneCirc'+str(r)+'r1_5U','GrapheneCirc'+str(r)+'r3U','GrapheneCirc'+str(r)+'r4_5U','GrapheneCirc'+str(r)+'r6U'],['$\it{U=1.5}$','$\it{U=3.0}$','$\it{U=4.5}$','$\it{U=6.0}$']
             DOST=np.zeros((len(filenames),4001),dtype = 'float')
-            psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[k](*args[k]),colorbnd[k],'GrapheneNR'+structname[k]+str(imp)+'pos')
+            psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(ip[j],DEDlib.Graphenecirclestruct(r,1),colorbnd[j],'GrapheneCirc'+str(r)+'r')
             for i,file in enumerate(filenames):
-                nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**input[i])
-                DEDlib.DOSplot(DOST[i], nonintrho, omega,file,labelnames[i],log=True)
-                DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
-            DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneNR'+structname[k]+str(imp)+'pos',nonintrho,log=True)
-        np.savetxt('GrapheneNR'+structname[k]+'nd',nd,delimiter='\t', newline='\n')
+                if j==1: inp[i]['ctype']='dn'
+                else: inp[i]['ctype']='n'
+                nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i])
+                DEDlib.DOSplot(DOST[i], nonintrho, omega,file+selecm[l],labelnames[i],log=True)
+                DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
+            DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneCirc'+str(r)+'r'+selecm[l],nonintrho,log=True)
+        np.savetxt('GrapheneCirc'+selecm[l]+'nd',nd,delimiter='\t', newline='\n')
+        posimp,func,args,colorbnd,structname,nd=[[85,248],[74,76]],[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,4),dtype = 'float')
+        for k,pos in enumerate(posimp):
+            for j,imp in enumerate(pos):
+                filenames,labelnames=['GrapheneNR'+structname[k]+str(imp)+'pos1_5U','GrapheneNR'+structname[k]+str(imp)+'pos3U','GrapheneNR'+structname[k]+str(imp)+'pos4_5U','GrapheneNR'+structname[k]+str(imp)+'pos6U'],['$\it{U=1.5}$','$\it{U=3.0}$','$\it{U=4.5}$','$\it{U=6.0}$']
+                DOST=np.zeros((len(filenames),4001),dtype = 'float')
+                psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[k](*args[k]),colorbnd[k],'GrapheneNR'+structname[k]+str(imp)+'pos')
+                for i,file in enumerate(filenames):
+                    nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i])
+                    DEDlib.DOSplot(DOST[i], nonintrho, omega,file+selecm[l],labelnames[i],log=True)
+                    DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
+                DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneNR'+structname[k]+str(imp)+'pos'+selecm[l],nonintrho,log=True)
+            np.savetxt('GrapheneNR'+structname[k]+selecm[l]+'nd',nd,delimiter='\t', newline='\n')
     
-    #Temperature dependence interacting impurity DOS
+    #Stop here###############################################################################
+
+    #Temperature dependence interacting impurity DOS with modified constraint for the temperature
+    input=[{"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
+    {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : ' ', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
+    {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'nb', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}]
+    filenames,labelnames,conname=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT3e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','no','soft']
+    DOST=np.zeros((len(input),len(input[0]["Tk"]),1001),dtype = 'complex_')
+    for j,inpt in enumerate(input):
+        nd, _, DOST[j], Lor, omega, selectpT, selectpcT=DEDlib.main(**inpt)
+        for i,file in enumerate(filenames):
+            DEDlib.DOSplot(DOST[j][i], Lor, omega,conname[j]+file,labelnames[i])
+            DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[j][i],conname[j]+file)
+        DEDlib.DOSmultiplot(omega,np.tile(omega, (len(input[0]["Tk"]),1)),DOST[j],np.tile(len(omega), len(input[0]["Tk"])),labelnames,conname[j]+'Ttotal',Lor)
+    conlabel,fDOS=['$\it{k_bT= %.0f}$, (constr.)'%0,'$\it{k_bT= %.0f}$, (no constr.)'%0,'$\it{k_bT= %.0f}$, (constr.)'%1,'$\it{k_bT= %.0f}$, (no constr.)'%1],[DOST[0][0],DOST[1][0],DOST[0][4],DOST[1][4]]
+    DEDlib.DOSmultiplot(omega,np.tile(omega, (4,1)),fDOS,np.tile(len(omega), 4),conlabel,'constrTtotal',Lor)
     
+    #Check noconstraint n=5,6
+    input=[{"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : ' '},
+    {"N" : 20000, "poles" : 6, "Ed" : -3/2, "ctype" : ' '}]
+    filenames,labelnames=['noconstraintN5p','noconstraintN6p'],['$\\rho_{no constr.},$n=5','$\\rho_{no constr.},$n=6']
+    for i,file in enumerate(filenames):
+        nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
+        DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     
     #add graphene U sim for all structures, vary t=1 to check impact nanoribbons
 
