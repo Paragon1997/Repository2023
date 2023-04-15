@@ -128,8 +128,8 @@ if __name__ == '__main__':
             DOST=np.zeros((len(filenames),4001),dtype = 'float')
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(ip[j],DEDlib.Graphenecirclestruct(r,1),colorbnd[j],'GrapheneCirc'+str(r)+'r')
             for i,file in enumerate(filenames):
-                if j==1: inp[i]['ctype']='dn'
-                else: inp[i]['ctype']='n'
+                if j==1: inp[i]['ctype'],inp[i]['Ed']='dn','AS'
+                else: inp[i]['ctype'],inp[i]['Ed']='n',-inp[i]['U']/2
                 nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i])
                 DEDlib.DOSplot(DOST[i], nonintrho, omega,file+selecm[l],labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
