@@ -88,7 +88,11 @@ Gives Green's function for the impurity level in the full interacting system (up
 def Constraint(ctype,H0,H,omega,eta,c,n,Tk):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
-    if ctype[0]=='n':
+    if ctype=='snb':
+        vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
+        evals, evecs =scipy.linalg.eigh(H.data.toarray())
+        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs)@n.data@evecs.T),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,1e-24),True
+    elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
@@ -96,9 +100,6 @@ Constraint implementation function for DED method with various possible constrai
             return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
             return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
-        elif ctype=='nb':
-            evals, evecs =scipy.linalg.eigh(H.data.toarray())
-            return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs)@n.data@evecs.T),exp[0,0])]-evals[0])/Tk),evals, evecs,0.001),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':

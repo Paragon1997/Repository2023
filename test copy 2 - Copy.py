@@ -21,7 +21,7 @@ from numba import jit
 import DEDlib
 
 
-input={"N" : 2000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'nb', "Tk" : [0.000000000001,0.1,1]}
+input={"N" : 200, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'snb', "Tk" : [0.000000000001,0.1,1]}
 filenames,labelnames=['cN4pT1e-12t','cN4pT1e-3t','cN4pT1e-2t'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000]
 nd, avgS, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input)
 for i,file in enumerate(filenames):
@@ -44,7 +44,7 @@ print(fDOS.shape,fDOS)
 DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)"""
 
-print(avgS[495:505])
+print(avgS[2][495:505])
 
 """ input={"N" : 1, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.1,1]}
 filenames,labelnames=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000]

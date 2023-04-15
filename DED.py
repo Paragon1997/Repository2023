@@ -129,6 +129,7 @@ if __name__ == '__main__':
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(ip[j],DEDlib.Graphenecirclestruct(r,1),colorbnd[j],'GrapheneCirc'+str(r)+'r')
             for i,file in enumerate(filenames):
                 if j==1: inp[i]['ctype']='dn'
+                else: inp[i]['ctype']='n'
                 nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i])
                 DEDlib.DOSplot(DOST[i], nonintrho, omega,file+selecm[l],labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
@@ -149,7 +150,7 @@ if __name__ == '__main__':
     
     #Stop here###############################################################################
 
-    #Temperature dependence interacting impurity DOS
+    #Temperature dependence interacting impurity DOS with modified constraint for the temperature
     input=[{"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
     {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : ' ', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
     {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'nb', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}]
