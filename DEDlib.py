@@ -81,7 +81,7 @@ def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
 Gives Green's function for the impurity level in the full interacting system (up and down spin)."""
     H0,H= HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma)
     try:
-        return Constraint(ctype,H0,H,omega,eta,c,n)
+        return Constraint(ctype,H0,H,omega,eta,c,n,Tk)
     except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):
         return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
 
