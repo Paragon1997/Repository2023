@@ -138,7 +138,7 @@ The main DED function simulating the Anderson impurity model for given parameter
     if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+AvgSigmadat[int(np.round(SizeO/2))]/Nfin[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
-def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.concatenate((-np.logspace(1,-80,int(np.round(20000/2)),base=8),np.logspace(-80,1,int(np.round(20000/2)),base=8))),etaco=[0.02,1e-24],omegastat=100001):
+def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.concatenate((-np.logspace(np.log(8)/np.log(1.5),-40,10000,base=1.5),np.logspace(-40,np.log(8)/np.log(1.5),10000,base=1.5))),etaco=[0.02,1e-24],omegastat=100001):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
 Returns data regarding a defined graphene circular structure such as the corresponding Green's function."""
     def plotsize(i): return 0.208 if i == imp else 0.125
