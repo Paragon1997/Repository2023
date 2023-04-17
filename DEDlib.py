@@ -277,10 +277,11 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.pause(0.5)
     return plt
 
-def textfileW(omega,selectpT,selectpcT,fDOS,name):
+def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[]):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
 File writing function for DED results."""
-    np.savetxt(name,np.transpose([omega,fDOS]), fmt='%.18g', delimiter='\t', newline='\n')
+    if AvgSigmadat==[]: np.savetxt(name,np.transpose([omega,fDOS]), fmt='%.18g', delimiter='\t', newline='\n')
+    else: np.savetxt(name,np.transpose([omega,fDOS,AvgSigmadat]), fmt='%.18g', delimiter='\t', newline='\n')
     np.savetxt(name+'polesC',selectpcT, delimiter='\t', newline='\n')
     np.savetxt(name+'poles',selectpT, delimiter='\t', newline='\n')
 
