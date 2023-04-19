@@ -285,10 +285,10 @@ Multi plot function to combine datasets in one graph for comparison including a 
 def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[]):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
 File writing function for DED results."""
-    if AvgSigmadat==[]: np.savetxt(name,np.transpose([omega,fDOS]), fmt='%.18g', delimiter='\t', newline='\n')
-    else: np.savetxt(name,np.transpose([omega,fDOS,AvgSigmadat]), fmt='%.18g', delimiter='\t', newline='\n')
-    np.savetxt(name+'polesC',selectpcT, delimiter='\t', newline='\n')
-    np.savetxt(name+'poles',selectpT, delimiter='\t', newline='\n')
+    if AvgSigmadat==[]: np.savetxt(name+'.txt',np.transpose([omega,fDOS]), fmt='%.18g', delimiter='\t', newline='\n')
+    else: np.savetxt(name+'.txt',np.c_[omega,fDOS,np.real(AvgSigmadat),np.imag(AvgSigmadat)], fmt='%.18f\t%.18f\t(%.18g%+.18gj)', delimiter='\t', newline='\n')
+    np.savetxt(name+'polesC'+'.txt',selectpcT, delimiter='\t', newline='\n')
+    np.savetxt(name+'poles'+'.txt',selectpT, delimiter='\t', newline='\n')
 
 def textfileR(name):
     """textfileR(name).
@@ -296,4 +296,4 @@ File reader to read DED data writen by textfileW(...)."""
     text_file = open(name, "r")
     lines = text_file.read().split('\n')
     text_file.close()
-    return np.array([np.array(l,dtype=object).astype(np.float) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]])
+    return np.array([np.array(l,dtype=object).astype(np.complex) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]])

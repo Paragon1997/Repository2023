@@ -15,7 +15,7 @@ from scipy.optimize import fsolve
 import copy
 from itertools import repeat
 
-import DEDlib as DEDlib
+import DEDlib
 
 if __name__ == '__main__':
     # Comparison of DED spectra for the symmetric Anderson model for several constaints and sites
@@ -115,7 +115,7 @@ if __name__ == '__main__':
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[500]),rtol=1e-4, atol=1e-5): break
             elif j<len(DOST)-1: input[i]['Sigma']=np.real(NewSigma[500])
         pbar.close()
-        np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd',nd,delimiter='\t', newline='\n')
+        np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd.txt',nd,delimiter='\t', newline='\n')
         DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+file,DEDlib.Lorentzian(omega,0.3,4,input[i]['Ed'],3/2)[0])
     filenames.close()
     
@@ -143,7 +143,7 @@ if __name__ == '__main__':
             filenames.close()
             DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneCirc'+str(r)+'r'+selecm[l],nonintrho,log=True)
         radius.close()
-        np.savetxt('GrapheneCirc'+selecm[l]+'nd',nd,delimiter='\t', newline='\n')
+        np.savetxt('GrapheneCirc'+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
         posimp,func,args,colorbnd,structname,nd=tqdm([[85,248],[74,76]],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims'),[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,4),dtype = 'float')
         for k,pos in enumerate(posimp):
             posb=tqdm(pos,position=2,leave=False,desc='No. position variation sims')
@@ -158,7 +158,7 @@ if __name__ == '__main__':
                 filenames.close()
                 DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneNR'+structname[k]+str(imp)+'pos'+selecm[l],nonintrho,log=True)
             posb.close()
-            np.savetxt('GrapheneNR'+structname[k]+selecm[l]+'nd',nd,delimiter='\t', newline='\n')
+            np.savetxt('GrapheneNR'+structname[k]+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
         posimp.close()
     
     #Stop here###############################################################################

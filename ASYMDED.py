@@ -35,6 +35,6 @@ if __name__ == '__main__':
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[500]),rtol=1e-4, atol=1e-5): break
             elif j<len(DOST)-1: input[i]['Sigma']=np.real(NewSigma[500])
         pbar.close()
-        np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd',nd,delimiter='\t', newline='\n')
+        np.savetxt(file+'%.16fSigma'%input[i]['Sigma']+'nd.txt',nd,delimiter='\t', newline='\n')
         DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames.astype(str),'Asymtotal'+file,DEDlib.Lorentzian(omega,0.3,4,input[i]['Ed'],3/2)[0])
     filenames.close()
