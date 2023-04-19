@@ -160,8 +160,6 @@ if __name__ == '__main__':
             posb.close()
             np.savetxt('GrapheneNR'+structname[k]+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
         posimp.close()
-    
-    #Stop here###############################################################################
 
     #Temperature dependence interacting impurity DOS with modified constraint for the temperature
     input=[{"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
@@ -188,6 +186,8 @@ if __name__ == '__main__':
         DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     filenames.close()
+
+    #Stop here###############################################################################
     
     #add graphene U sim for all structures, vary t=1 to check impact nanoribbons
 
