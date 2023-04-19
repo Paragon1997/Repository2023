@@ -157,7 +157,8 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plot.tight_layout()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
     plt.draw()
-    plt.pause(0.5)
+    plt.pause(5)
+    plt.close()
     eig,P=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False))
     return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*(etaco[0]*abs(omega)+etaco[1])) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
@@ -247,7 +248,8 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
-    plt.pause(0.5)
+    plt.pause(5)
+    plt.close()
     return plt
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
@@ -276,7 +278,8 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
-    plt.pause(0.5)
+    plt.pause(5)
+    plt.close()
     return plt
 
 def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[]):
