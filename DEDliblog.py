@@ -3,7 +3,7 @@
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-from tqdm import tqdm
+from tqdm.auto import trange
 import time
 from qutip import *
 import numpy as np
