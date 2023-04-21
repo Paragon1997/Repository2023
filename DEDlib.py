@@ -3,7 +3,7 @@
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-from tqdm import tqdm
+from tqdm.auto import trange
 import time
 from qutip import *
 import numpy as np
@@ -116,13 +116,13 @@ Constraint implementation function for DED method with various possible constrai
 def find_nearest(array,value):
     for i in (i for i,arrval in enumerate(array) if np.isclose(arrval, value, atol=0.1)): return i
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,Tk=[0]):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS',bound=3,Tk=[0],posb=1):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
-    c=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
+    c,pbar=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations')
     n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'float'),np.zeros(len(Tk),dtype = 'complex_')
-    for i in tqdm(range(N)):
+    for i in pbar:
         reset = False
         while not reset:
             if Ed == 'AS': select=sorted(Lorentzian(omega, Gamma, poles)[1])
@@ -136,6 +136,7 @@ The main DED function simulating the Anderson impurity model for given parameter
         Nfin+=Boltzmann
         AvgSigmadat+=1/nonG-1/MBGdat+Sigma
         nd+=np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
+    pbar.close()
     if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
     else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
@@ -156,9 +157,11 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plot.tight_layout()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
     plt.draw()
-    plt.pause(0.5)
-    eig,P=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False))
-    return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*(etaco[0]*abs(omega)+etaco[1])) 
+    plt.pause(5)
+    plt.close()
+    (eig,P),eta=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False)),etaco[0]*abs(omega)+etaco[1]
+    eta[int(np.round(len(omega)/2))]=1e-6
+    return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*eta) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
                                     /(np.linspace(min(omega),max(omega),omegastat)-eigv+1.j*(etaco[0]*abs(np.linspace(min(omega),max(omega),omegastat))+etaco[1])) 
                                     for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp]
@@ -187,13 +190,13 @@ def Graphenecirclestruct(r=1.5, t=1):
     syst[lat.shape(circle, (0, 0))],syst[lat.neighbors()] = 0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,nd=0,Tk=[0]):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False,nd=0,Tk=[0],posb=1):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,AvgSigmadat,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[]
+    omega,AvgSigmadat,selectpcT,selectpT,pbar= np.linspace(-bound,bound,SizeO),np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[],trange(N,position=posb,leave=False,desc='Iterations')
     c,eta,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],etaco[0]*abs(omega)+etaco[1],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
     n,AvgSigmadat,Nfin=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'complex_')
-    for i in tqdm(range(N)):
+    for i in pbar:
         reset = False
         while not reset:
             if eigsel: select=sorted(np.random.choice(eig, poles,p=psi,replace=False))
@@ -207,6 +210,7 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
         Nfin+=Boltzmann
         AvgSigmadat+=1/nonG-1/MBGdat+Sigma
         nd+=np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0
+    pbar.close()
     if Ed == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
     else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
 
@@ -245,7 +249,8 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
-    plt.pause(0.5)
+    plt.pause(5)
+    plt.close()
     return plt
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
@@ -274,15 +279,17 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
     plt.draw()
-    plt.pause(0.5)
+    plt.pause(5)
+    plt.close()
     return plt
 
-def textfileW(omega,selectpT,selectpcT,fDOS,name):
+def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[]):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
 File writing function for DED results."""
-    np.savetxt(name,np.transpose([omega,fDOS]), fmt='%.18g', delimiter='\t', newline='\n')
-    np.savetxt(name+'polesC',selectpcT, delimiter='\t', newline='\n')
-    np.savetxt(name+'poles',selectpT, delimiter='\t', newline='\n')
+    if AvgSigmadat==[]: np.savetxt(name+'.txt',np.transpose([omega,fDOS]), fmt='%.18g', delimiter='\t', newline='\n')
+    else: np.savetxt(name+'.txt',np.c_[omega,fDOS,np.real(AvgSigmadat),np.imag(AvgSigmadat)], fmt='%.18f\t%.18f\t(%.18g%+.18gj)', delimiter='\t', newline='\n')
+    np.savetxt(name+'polesC'+'.txt',selectpcT, delimiter='\t', newline='\n')
+    np.savetxt(name+'poles'+'.txt',selectpT, delimiter='\t', newline='\n')
 
 def textfileR(name):
     """textfileR(name).
@@ -290,4 +297,4 @@ File reader to read DED data writen by textfileW(...)."""
     text_file = open(name, "r")
     lines = text_file.read().split('\n')
     text_file.close()
-    return np.array([np.array(l,dtype=object).astype(np.float) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]])
+    return np.array([np.array(l,dtype=object).astype(np.complex) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]])
