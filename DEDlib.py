@@ -157,8 +157,8 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plt.rc('ytick', labelsize=25)
     plot=kwant.plot(fsyst,unit=1.2 ,hop_lw=0.05,site_size=plotsize,site_color=family_color,site_lw=0.02,fig_size=[10,8])
     plot.tight_layout()
+    plt.show()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
-    plt.draw()
     plt.pause(5)
     plt.close()
     (eig,P),eta=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False)),etaco[0]*abs(omega)+etaco[1]
@@ -231,7 +231,6 @@ def DOSplot(fDOS,Lor,omega,name,labels,log=False):
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
     plt.ion()
-    plt.close()
     plt.rc('legend', fontsize=17)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -250,9 +249,10 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
+    plt.ion()
+    plt.show()
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
-    plt.draw()
     plt.pause(5)
     plt.close()
     return plt
@@ -263,7 +263,6 @@ Multi plot function to combine datasets in one graph for comparison including a 
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
     plt.figure(figsize=(10,8))
     plt.ion()
-    plt.close()
     plt.rc('legend', fontsize=18)
     plt.rc('font', size=18)
     plt.rc('xtick', labelsize=18)
@@ -282,9 +281,10 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
+    plt.ion()
+    plt.show()
     plt.savefig(name+'.png', format='png')
     plt.savefig(name+'.svg', format='svg', dpi=3600)
-    plt.draw()
     plt.pause(5)
     plt.close()
     return plt
