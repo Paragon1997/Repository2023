@@ -1,5 +1,5 @@
 ## module DEDlib
-''' DEDlib is a Distributional Exact Diagonalization tooling library for study of Anderson (multi-)impurity model in Graphene Nanoribbons'''
+''' DEDliblog is a Distributional Exact Diagonalization tooling library for study of Anderson (multi-)impurity model in Graphene Nanoribbons'''
 
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
