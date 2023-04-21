@@ -149,6 +149,8 @@ Returns data regarding a defined graphene circular structure such as the corresp
         elif i<colorbnd: return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
     plt.figure(figsize=(10,8))
+    plt.ion()
+    plt.close()
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -228,6 +230,8 @@ def DOSplot(fDOS,Lor,omega,name,labels,log=False):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
+    plt.ion()
+    plt.close()
     plt.rc('legend', fontsize=17)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
@@ -258,6 +262,8 @@ def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
     plt.figure(figsize=(10,8))
+    plt.ion()
+    plt.close()
     plt.rc('legend', fontsize=18)
     plt.rc('font', size=18)
     plt.rc('xtick', labelsize=18)
