@@ -112,7 +112,7 @@ if __name__ == '__main__':
             (nd[j], NewSigma, DOST[j], Lor, omega, selectpT, selectpcT),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
             DEDlib.DOSplot(DOST[j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma'])
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[j],file+'%.16fSigma'%input[i]['Sigma'],NewSigma)
-            if np.isclose(input[i]['Sigma'],np.real(NewSigma[int(np.round(len(NewSigma)/2))]),rtol=2.5e-4, atol=1e-5): break
+            if np.isclose(input[i]['Sigma'],np.real(NewSigma[int(np.round(len(NewSigma)/2))]),rtol=6e-4, atol=1e-5): break
             input[i]['Sigma']=np.real(NewSigma[int(np.round(len(NewSigma)/2))])
         pbar.close()
         np.savetxt(file+'%.16fSigma'%np.real(NewSigma[int(np.round(len(NewSigma)/2))])+'nd.txt',nd,delimiter='\t', newline='\n')
