@@ -42,10 +42,9 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
         di[i][i]=sqrt(poles-i-1)/sqrt(poles-i)
     Pbath,Dbath=np.insert(di, row,1/sqrt(poles),axis=0),np.zeros((poles,poles))
     for i, _ in enumerate(select): Dbath[i][i]=select[i]
-    ham_mat=np.dot(Pbath,np.dot(Dbath,Pbath.T))
-    pbar=np.insert(np.insert(np.linalg.eig(np.delete(np.delete(ham_mat,row,axis=0),row,axis=1))[1], row,0,axis=0),row,0,axis=1)
+    pbar=np.insert(np.insert(np.linalg.eig(np.delete(np.delete(np.dot(Pbath,np.dot(Dbath,Pbath.T)),row,axis=0),row,axis=1))[1], row,0,axis=0),row,0,axis=1)
     pbar[row][row]=1
-    return np.dot(pbar.T,np.dot(ham_mat,pbar)),sum([1 / len(select) / (omega - select[i] + 1.j * eta) for i, _ in enumerate(select)])
+    return np.dot(pbar.T,np.dot(np.dot(Pbath,np.dot(Dbath,Pbath.T)),pbar)),sum([1 / len(select) / (omega - select[i] + 1.j * eta) for i, _ in enumerate(select)])
 
 def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma, H = 0):
     """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
