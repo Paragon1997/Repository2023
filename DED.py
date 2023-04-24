@@ -192,6 +192,8 @@ if __name__ == '__main__':
     
     #vary t=1 to check impact nanoribbons
 
+    #calculatse stdev of SAIM DED method with repeated sims with various N's
+
     ######################################################################### Extra simulation to check if no constraint is correct for n=6 (does not work yet needs more testing)##########################################################################
 
     ######################################################################### Improve to n=7 ####################################################################

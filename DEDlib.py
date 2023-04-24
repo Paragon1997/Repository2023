@@ -58,7 +58,7 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
 def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
-    if evals==[]: evals, evecs =scipy.linalg.eigh(H.data.toarray())
+    if np.any(evals): evals, evecs =scipy.linalg.eigh(H.data.toarray())
     if Tk==[0]:
         vecn=np.conj(evecs[:,1:]).T
         exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
