@@ -260,7 +260,7 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.xlabel("$\\omega$ [-]", **axis_font)
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom", rotation=0,labelpad=30,**axis_font)
     plt.plot(omega,rho0, '--',color='black',linewidth=4,label='$\\rho_0$')
-    for i,p in enumerate(plotp): plt.plot(omegap[i,:p],DOST[i,:p],colors[i],linewidth=2,label=labels[i])
+    for i,p in enumerate(plotp): plt.plot(omegap[i,:p],DOST[i,:p],colors[i],linewidth=2,label=labels[i],alpha=0.7)
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
