@@ -65,7 +65,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
                         abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),Boltzmann,evecs[:,0]
     else:
-        MGdat,eta[int(np.round(len(eta)/2))]=np.zeros((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
+        MGdat,eta[int(np.round(len(eta)/2))]=np.ones((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
         for k,T in enumerate(Tk):
             if Boltzmann[k]!=0:
                 eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
@@ -90,7 +90,7 @@ Constraint implementation function for DED method with various possible constrai
     if ctype=='snb':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
         evals, evecs =scipy.linalg.eigh(H.data.toarray())
-        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs),True
+        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,0.00001),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
