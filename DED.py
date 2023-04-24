@@ -190,10 +190,7 @@ if __name__ == '__main__':
 
     #Stop here###############################################################################
     
-    #add graphene U sim for all structures, vary t=1 to check impact nanoribbons
-
-    # Need redos of all single impurity with Ed=Ed not sigma dependent to check if this influences symmetry U=6 for example as test
-    # Problem was the index of sigmadat for Ed (now corrected)
+    #vary t=1 to check impact nanoribbons
 
     ######################################################################### Extra simulation to check if no constraint is correct for n=6 (does not work yet needs more testing)##########################################################################
 
