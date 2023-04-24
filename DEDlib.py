@@ -4,16 +4,15 @@
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 from tqdm.auto import trange
-import time
+from time import time
 from qutip import *
 import numpy as np
 import matplotlib.pyplot as plt
 import kwant
-import math
-from math import  sqrt
+from numpy import sqrt
 import scipy
 from itertools import repeat
-from numba import jit
+from numba import njit
 
 #class DED:
 
@@ -27,11 +26,12 @@ Defines the Jordan Wigner transformation for a 1D lattice."""
     for _ in range(lattice_length - j - 1): operators = tensor(operators, identity(2))
     return operators
 
+@njit
 def Lorentzian(omega, Gamma, poles,Ed=-3/2,Sigma=3/2):
     """Lorentzian(omega, Gamma, poles,Ed=-3/2,Sigma=3/2). 
 Defines the non-interacting DOS (rho0) and selects random sites based on the number of sites in the 1D lattice model and the calculated distribution."""
     p = np.random.uniform(0, 1, poles)
-    return -np.imag(1/(omega-Ed-Sigma+1j*Gamma))/np.pi, np.array([Gamma * math.tan(np.pi * (p[i] - 1 / 2))+Ed+Sigma for i in range(poles)])
+    return -np.imag(1/(omega-Ed-Sigma+1j*Gamma))/np.pi, np.array([Gamma * np.tan(np.pi * (p[i] - 1 / 2))+Ed+Sigma for i in range(poles)])
 
 def Startrans(poles,select,row,omega, eta):
     """Startrans(poles,select,row,omega, eta). 
@@ -124,7 +124,7 @@ The main DED function simulating the Anderson impurity model for given parameter
     for i in pbar:
         reset = False
         while not reset:
-            NewM,nonG,select=Startrans(poles,sorted(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),0,omega,eta)
+            NewM,nonG,select=Startrans(poles,np.sort(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),0,omega,eta)
             (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
@@ -192,8 +192,8 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
     for i in pbar:
         reset = False
         while not reset:
-            if eigsel: NewM,nonG,select=Startrans(poles,sorted(np.random.choice(eig, poles,p=psi,replace=False)),0,omega,eta)
-            else: NewM,nonG,select=Startrans(poles,sorted(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False)),0,omega,eta)
+            if eigsel: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(eig, poles,p=psi,replace=False)),0,omega,eta)
+            else: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False)),0,omega,eta)
             (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
