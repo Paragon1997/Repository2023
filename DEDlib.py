@@ -125,8 +125,7 @@ The main DED function simulating the Anderson impurity model for given parameter
         reset = False
         while not reset:
             NewM,nonG,select=Startrans(poles,sorted(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),0,omega,eta)
-            (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
-                                   NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
+            (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
         selectpcT[i,:],Nfin,AvgSigmadat,nd=select,Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
@@ -195,8 +194,7 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
         while not reset:
             if eigsel: NewM,nonG,select=Startrans(poles,sorted(np.random.choice(eig, poles,p=psi,replace=False)),0,omega,eta)
             else: NewM,nonG,select=Startrans(poles,sorted(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False)),0,omega,eta)
-            (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], 
-                                   NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
+            (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
         selectpcT[i,:],Nfin,AvgSigmadat,nd=select,Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
