@@ -68,30 +68,72 @@ Gives Green's function for the impurity level in the full interacting system (up
     except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):
         return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     
+def find_nearest(array,value):
+    for i in (i for i,arrval in enumerate(array) if np.isclose(arrval, value, atol=0.1)): return i
+    
 def Constraint(ctype,H0,H,omega,eta,c,n,Tk):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype=='snb':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
         evals, evecs =scipy.linalg.eigh(H.data.toarray())
-        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,0.00001),True
+        return MBGAIM(omega, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,0.00001),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
+        evals, evecs =scipy.linalg.eigh(H.data.toarray())
         if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
-            return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega, c, eta,Tk,np.ones(len(Tk)),evals,evecs),True
         elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega, c, eta,Tk,np.ones(len(Tk)),evals,evecs),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.linalg.eigh(H.data.toarray(),eigvals=[0, 0])[1][:,0],
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0])))
         exp=np.conj(vecs)@n.data@vecs.T
+        evals, evecs =scipy.linalg.eigh(H.data.toarray())
         if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega, c, eta,Tk,np.ones(len(Tk)),evals,evecs),True
         else:
             return (np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
     else:
-        return MBGAIM(omega, H, c, eta,Tk,np.ones(len(Tk))),True
+        evals, evecs =scipy.linalg.eigh(H.data.toarray())
+        return MBGAIM(omega, c, eta,Tk,np.ones(len(Tk)),evals,evecs),True
+
+def MBGAIM(omega, c, eta,Tk,Boltzmann,evals,evecs,etaoffset=0.0001):
+    """MBGAIM(omega, H, c, eta). 
+Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
+    if Tk==[0]:
+        vecn=np.conj(evecs[:,1:]).T
+        exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
+        return MBG(omega,eta,evals,exp,exp2,Boltzmann,evecs)
+    else:
+        MGdat,eta[int(np.round(len(eta)/2))]=np.ones((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
+        for k,T in enumerate(Tk):
+            if Boltzmann[k]!=0:
+                eevals= Z(evals,T)
+                vecn=np.conj(evecs).T
+                exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
+                MGdat[k,:]= MBGT(omega,eta,evals,exp,exp2,eevals)
+        return MGdat.squeeze(),Boltzmann,evecs[:,0]
+
+@njit
+def MBG(omega,eta,evals,exp,exp2,Boltzmann,evecs):
+    G=np.zeros(len(omega),dtype = 'complex_')
+    for i,expi in enumerate(exp):
+        G+=abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta)
+    return G,Boltzmann,evecs[:,0]
+
+@njit
+def MBGT(omega,eta,evals,exp,exp2,eevals):
+    G=np.zeros(len(omega),dtype = 'complex_')
+    for i,evi in enumerate(evals):
+        for j,evj in enumerate(evals):
+            G+=(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i]
+    return G
+
+@njit
+def Z(evals,T):
+    return np.exp(-evals/T-scipy.special.logsumexp(-evals/T))

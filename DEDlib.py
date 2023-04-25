@@ -33,18 +33,21 @@ Defines the non-interacting DOS (rho0) and selects random sites based on the num
     p = np.random.uniform(0, 1, poles)
     return -np.imag(1/(omega-Ed-Sigma+1j*Gamma))/np.pi, np.array([Gamma * np.tan(np.pi * (p[i] - 1 / 2))+Ed+Sigma for i in range(poles)])
 
-def Startrans(poles,select,row,omega, eta):
+@njit
+def Startrans(poles,select,omega, eta,row=0):
     """Startrans(poles,select,row,omega, eta). 
 Function to transform 1D lattice matrices in order to calculates parameters impengergy, bathenergy and Vkk from random sampling distribution."""
-    di=np.full((poles-1, poles), np.zeros(poles))
+    Pbath,Dbath,pbar,G=np.zeros((poles, poles)),np.zeros((poles,poles)),np.zeros((poles, poles)),np.zeros(omega.shape,dtype = 'complex_')
     for i in range(poles-1):
-        for j in (j for j in range(poles-1) if j>=i): di[i][j+1]=-1/sqrt((poles-i-1)*(poles-i))
-        di[i][i]=sqrt(poles-i-1)/sqrt(poles-i)
-    Pbath,Dbath=np.insert(di, row,1/sqrt(poles),axis=0),np.zeros((poles,poles))
+        for j in range(poles-1):
+            if j>=i: Pbath[i+1][j+1]=-1/sqrt((poles-i-1)*(poles-i))
+        Pbath[i+1][i]=sqrt(poles-i-1)/sqrt(poles-i)
+    Pbath[row,:]=1/sqrt(poles)
     for i, _ in enumerate(select): Dbath[i][i]=select[i]
-    pbar=np.insert(np.insert(np.linalg.eig(np.delete(np.delete(np.dot(Pbath,np.dot(Dbath,Pbath.T)),row,axis=0),row,axis=1))[1], row,0,axis=0),row,0,axis=1)
+    pbar[1:,1:]=np.linalg.eig(np.dot(Pbath,np.dot(Dbath,Pbath.T))[1:,1:])[1]
     pbar[row][row]=1
-    return np.dot(pbar.T,np.dot(np.dot(Pbath,np.dot(Dbath,Pbath.T)),pbar)),sum([1 / len(select) / (omega - select[i] + 1.j * eta) for i, _ in enumerate(select)]),select
+    for i, _ in enumerate(select): G+=1 / len(select) / (omega - select[i] + 1.j * eta)
+    return np.dot(pbar.T,np.dot(np.dot(Pbath,np.dot(Dbath,Pbath.T)),pbar)),G,select
 
 def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma, H = 0):
     """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
@@ -55,7 +58,7 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+ bathE * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
-def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001):
+def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001,posoffset=np.zeros(1,dtype='int')):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
     if ~np.any(evals): evals, evecs =scipy.linalg.eigh(H.data.toarray())
@@ -65,7 +68,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
                         abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),Boltzmann,evecs[:,0]
     else:
-        MGdat,eta[int(np.round(len(eta)/2))]=np.ones((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
+        MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
         for k,T in enumerate(Tk):
             if Boltzmann[k]!=0:
                 eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
@@ -90,7 +93,7 @@ Constraint implementation function for DED method with various possible constrai
     if ctype=='snb':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
         evals, evecs =scipy.linalg.eigh(H.data.toarray())
-        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,0.00001),True
+        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))
@@ -124,7 +127,7 @@ The main DED function simulating the Anderson impurity model for given parameter
     for i in pbar:
         reset = False
         while not reset:
-            NewM,nonG,select=Startrans(poles,np.sort(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),0,omega,eta)
+            NewM,nonG,select=Startrans(poles,np.sort(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),omega,eta)
             (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
@@ -141,15 +144,15 @@ Returns data regarding a defined graphene circular structure such as the corresp
         if i == imp: return 'purple'
         elif i<colorbnd: return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
-    plt.figure(figsize=(10,8))
+    plt.ion()
     plt.rc('legend', fontsize=25)
     plt.rc('font', size=25)
     plt.rc('xtick', labelsize=25)
     plt.rc('ytick', labelsize=25)
     plot=kwant.plot(fsyst,unit=1.2 ,hop_lw=0.05,site_size=plotsize,site_color=family_color,site_lw=0.02,fig_size=[10,8])
     plot.tight_layout()
+    plt.show()
     plot.savefig(filename+'NR.svg', format='svg', dpi=3600)
-    plt.draw()
     plt.pause(5)
     plt.close()
     (eig,P),eta=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False)),etaco[0]*abs(omega)+etaco[1]
@@ -192,8 +195,8 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
     for i in pbar:
         reset = False
         while not reset:
-            if eigsel: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(eig, poles,p=psi,replace=False)),0,omega,eta)
-            else: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False)),0,omega,eta)
+            if eigsel: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(eig, poles,p=psi,replace=False)),omega,eta)
+            else: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False)),omega,eta)
             (MBGdat,Boltzmann,Ev0),reset=AIMsolver(NewM[0][0], [NewM[k+1][k+1] for k in range(len(NewM)-1)], NewM[0,1:], U,Sigma,omega,eta,c, n, ctype,Tk)
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
