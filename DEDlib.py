@@ -58,6 +58,20 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
             H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+ bathE * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
     return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
+@njit
+def MBGT0(omega,eta,evals,exp,exp2):
+    G=np.zeros(len(omega),dtype = 'complex_')
+    for i,expi in enumerate(exp): G+=abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta)
+    return G
+
+@njit
+def MBGTnonzero(omega,eta,evals,exp,exp2,T):
+    G,eevals=np.zeros(len(omega),dtype = 'complex_'),np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
+    for i,evi in enumerate(evals):
+        for j,evj in enumerate(evals):
+            G+=(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i]
+    return G
+
 def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001,posoffset=np.zeros(1,dtype='int')):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
@@ -65,17 +79,14 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
     if Tk==[0]:
         vecn=np.conj(evecs[:,1:]).T
         exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
-        return sum([abs(expi)** 2 / (omega + evals[i+1] - evals[0] + 1.j * eta) + 
-                        abs(exp2[i])** 2 / (omega + evals[0] - evals[i+1] + 1.j * eta) for i,expi in enumerate(exp)]),Boltzmann,evecs[:,0]
+        return MBGT0(omega,eta,evals,exp,exp2),Boltzmann,evecs[:,0]
     else:
         MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
         for k,T in enumerate(Tk):
             if Boltzmann[k]!=0:
-                eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
                 vecn=np.conj(evecs).T
                 exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
-                MGdat[k,:]=sum([(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + 
-                            exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i] for i,evi in enumerate(evals) for j,evj in enumerate(evals)])
+                MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,T)
         return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
