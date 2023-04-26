@@ -65,14 +65,14 @@ def MBGT0(omega,eta,evals,exp,exp2):
     return G
 
 @njit
-def MBGTnonzero(omega,eta,evals,exp,exp2,T):
-    G,eevals=np.zeros(len(omega),dtype = 'complex_'),np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
+def MBGTnonzero(omega,eta,evals,exp,exp2,eevals):
+    G=np.zeros(len(omega),dtype = 'complex_')
     for i,evi in enumerate(evals):
         for j,evj in enumerate(evals):
             G+=(exp[i][j]*exp2[j][i]/ (omega + evi - evj + 1.j * eta) + exp[j][i]*exp2[i][j]/ (omega + evj - evi + 1.j * eta))*eevals[i]
     return G
 
-def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=0.0001,posoffset=np.zeros(1,dtype='int')):
+def MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int')):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
     if ~np.any(evals): evals, evecs =scipy.linalg.eigh(H.data.toarray())
@@ -84,9 +84,10 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype = 'complex_'),etaoffset
         for k,T in enumerate(Tk):
             if Boltzmann[k]!=0:
+                eevals= np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
                 vecn=np.conj(evecs).T
                 exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
-                MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,T)
+                MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,eevals)
         return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
 def AIMsolver(impenergy, bathenergy, Vkk, U, Sigma, omega, eta, c, n, ctype,Tk):
@@ -104,7 +105,7 @@ Constraint implementation function for DED method with various possible constrai
     if ctype=='snb':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
         evals, evecs =scipy.linalg.eigh(H.data.toarray())
-        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs),True
+        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,etaoffset=2e-4),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))

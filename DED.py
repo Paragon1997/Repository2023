@@ -189,6 +189,16 @@ if __name__ == '__main__':
     filenames.close()
 
     #Stop here###############################################################################
+
+    #figure out why u=0 does not give rho0 for r=2.3
+
+    #add N boltzmann as output for T>0
+
+    #maybe select total Boltzmann N for each temp
+
+    #move hamiltonian f out of solver into main
+
+    
     
     #vary t=1 to check impact nanoribbons
 
