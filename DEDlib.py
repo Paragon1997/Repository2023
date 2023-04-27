@@ -105,7 +105,7 @@ Constraint implementation function for DED method with various possible constrai
     if ctype=='snb':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
         evals, evecs =scipy.linalg.eigh(H.data.toarray())
-        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,etaoffset=2e-4),True
+        return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,etaoffset=2e-4,posoffset=np.array([-1,0,1])),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data), k=1, which='SA')[1][:,0])))

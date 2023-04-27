@@ -19,8 +19,9 @@ import DEDlib as DEDlib
 
 if __name__ == '__main__':
     # Interacting DOS of asymmetric Anderson impurity model
-    input=[{"N" : 200000, "poles" : 4, "Ed" : -1.5, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4}]
-    filenames=tqdm(['cN4p-1_5Ed','cN4p-1_65Ed','cN4p-1_8Ed','cN4p-2Ed','cN4p-2_5Ed','cN4p-3Ed'],position=0,leave=False,desc='No. ASAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    input=[{"N" : 200000, "poles" : 4, "Ed" : -2.5, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4},
+    {"N" : 200000, "poles" : 4, "Ed" : -3, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4}]
+    filenames=tqdm(['cN4p-2_5Ed','cN4p-3Ed'],position=0,leave=False,desc='No. ASAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     for i,file in enumerate(filenames):
         DOST,labelnames,nd,pbar=np.zeros((8,1001),dtype = 'float'),np.chararray(8, itemsize=23),np.zeros(8,dtype = 'float'),trange(8,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j in pbar:
