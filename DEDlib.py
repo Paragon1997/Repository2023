@@ -49,14 +49,14 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
     for i, _ in enumerate(select): G+=1 / len(select) / (omega - select[i] + 1.j * eta)
     return np.dot(pbar.T,np.dot(np.dot(Pbath,np.dot(Dbath,Pbath.T)),pbar)),G,select
 
-def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma, H = 0):
+def HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma, H0 = 0):
     """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
 Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
     for i in range(2):
-        H += impenergy * (c[i].dag() * c[i])
+        H0 += impenergy * (c[i].dag() * c[i])
         for j, bathE in enumerate(bathenergy):
-            H += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+ bathE * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
-    return H,H+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
+            H0 += Vkk[j] * (c[i].dag() * c[2 * j + i + 2] + c[2 * j + i + 2].dag() * c[i])+ bathE * (c[2 * j + i + 2].dag() * c[2 * j + i + 2])
+    return H0,H0+U * (c[0].dag() * c[0] * c[1].dag() * c[1])-Sigma * (c[0].dag() * c[0] + c[1].dag() * c[1])
 
 @njit
 def MBGT0(omega,eta,evals,exp,exp2):
