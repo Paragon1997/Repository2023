@@ -95,14 +95,12 @@ def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype[0]=='s':
+        vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
+        evals,evecs=scipy.linalg.eigh(H.data.toarray())
         if ctype=='ssn':
-            vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
-            evals, evecs =scipy.linalg.eigh(H.data.toarray())
             Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk)*Nfin.astype('int')
             return MBGAIM(omega, H, c, eta,Tk,Boltzmann,evals, evecs,4e-4,np.array([-1,0,1]),Nfin,ctype),True
         else:
-            vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0, 0])[1][:,0]
-            evals, evecs =scipy.linalg.eigh(H.data.toarray())
             return MBGAIM(omega, H, c, eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals, evecs,4e-4,np.array([-1,0,1])),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data), k=1, which='SA')[1][:,0],
