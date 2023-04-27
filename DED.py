@@ -164,7 +164,7 @@ if __name__ == '__main__':
     #Temperature dependence interacting impurity DOS with modified constraint for the temperature
     input=[{"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
     {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : ' ', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
-    {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'snb', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}]
+    {"N" : 20000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'sn', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}]
     filenames,labelnames,conname,pbar=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT3e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','no','soft'],tqdm(input,position=0,leave=False,desc='No. T-dependent SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     DOST=np.zeros((len(input),len(input[0]["Tk"]),1001),dtype = 'complex_')
     for j,inpt in enumerate(pbar):
@@ -192,14 +192,6 @@ if __name__ == '__main__':
 
     #figure out why u=0 does not give rho0 for r=2.3
 
-    #add N boltzmann as output for T>0
-
-    #maybe select total Boltzmann N for each temp
-
-    #move hamiltonian f out of solver into main
-
-    
-    
     #vary t=1 to check impact nanoribbons
 
     #calculatse stdev of SAIM DED method with repeated sims with various N's
