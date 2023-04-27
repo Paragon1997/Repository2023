@@ -201,23 +201,25 @@ def Graphenecirclestruct(r=1.5, t=1):
 def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],posb=1):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,AvgSigmadat,selectpcT,selectpT,pbar= np.linspace(-bound,bound,SizeO),np.zeros(SizeO,dtype = 'complex_'),np.zeros((N,poles),dtype = 'float'),[],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    omega,AvgSigmadat,selectpcT,selectpT,pbar= np.linspace(-bound,bound,SizeO),np.zeros(SizeO,dtype = 'complex_'),[],[],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     c,eta,rhoint=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],etaco[0]*abs(omega)+etaco[1],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
     n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'complex_')
-    for i in pbar:
+    while np.array([ar<N for _,ar in enumerate(Nfin)]).all():
         reset = False
         while not reset:
             if eigsel: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(eig, poles,p=psi,replace=False)),omega,eta)
             else: NewM,nonG,select=Startrans(poles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),poles,p=rhoint,replace=False)),omega,eta)
             H0,H=HamiltonianAIM(c,NewM[0][0],[NewM[k+1][k+1] for k in range(len(NewM)-1)],NewM[0,1:],U,Sigma)
-            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk)
+            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar>=N for _,ar in enumerate(Nfin)]))
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([float(i) >= 500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
-        selectpcT[i,:],Nfin,AvgSigmadat,nd=select,Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
+        Nfin,AvgSigmadat,nd,pbar.n=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann,int(min(Nfin))
+        selectpcT.append(select)
+        pbar.refresh()
     pbar.close()
-    if Edcalc == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
-    else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    if Edcalc == 'AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
+    else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT
 
 def PolestoDOS(select,selectnon,ratio=200,bound=3):
     """PolestoDOS(select,selectnon,ratio=200). 
