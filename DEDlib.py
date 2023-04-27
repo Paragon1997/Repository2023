@@ -91,7 +91,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
                     MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,eevals)
         return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
-def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin=True):
+def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype[0]=='s':
@@ -131,28 +131,10 @@ def find_nearest(array,value):
 def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Edcalc='',bound=3,Tk=[0],posb=1):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],np.zeros((N,poles),dtype = 'float'),[]
-    c,pbar=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'float'),np.zeros(len(Tk),dtype = 'complex_')
-    for i in pbar:
-        reset = False
-        while not reset:
-            NewM,nonG,select=Startrans(poles,np.sort(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),omega,eta)
-            H0,H=HamiltonianAIM(c,NewM[0][0],[NewM[k+1][k+1] for k in range(len(NewM)-1)],NewM[0,1:],U,Sigma)
-            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk)
-            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
-            selectpT.append(select)
-        selectpcT[i,:],Nfin,AvgSigmadat,nd=select,Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
-    pbar.close()
-    if Edcalc == 'AS': return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
-    else: return np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
-
-def Temp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='ssn',Edcalc='',bound=3,Tk=[0],posb=1):
     omega,eta,selectpcT,selectpT= np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[]
     c,pbar=[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype = 'complex_'),np.zeros(len(Tk),dtype = 'float'),np.zeros(len(Tk),dtype = 'complex_')
-    while np.array([ar<=N for _,ar in enumerate(Nfin)]).all():
+    while np.array([ar<N for _,ar in enumerate(Nfin)]).all():
         reset = False
         while not reset:
             NewM,nonG,select=Startrans(poles,np.sort(Lorentzian(omega, Gamma, poles,Ed,Sigma)[1]),omega,eta)
@@ -161,14 +143,12 @@ def Temp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype = 'complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i >= 1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
+        Nfin,AvgSigmadat,nd,pbar.n=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann,int(min(Nfin))
         selectpcT.append(select)
-        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
-        pbar.n = int(min(Nfin))
         pbar.refresh()
-        print(Nfin,nd, end='\r')
     pbar.close()
-    if Edcalc == 'AS': return Nfin.squeeze(),np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
-    else: return Nfin.squeeze(),np.real(nd/Nfin).squeeze(),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
+    if Edcalc == 'AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT
+    else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
