@@ -22,7 +22,7 @@ if __name__ == '__main__':
     input=[{"N" : 200000, "poles" : 4, "Ed" : -2.5, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4}]
     filenames=tqdm(['cN4p-2_5Ed'],position=0,leave=False,desc='No. ASAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     for i,file in enumerate(filenames):
-        DOST,labelnames,nd,pbar=np.zeros((16,1001),dtype = 'float'),np.chararray(16, itemsize=23),np.zeros(16,dtype = 'float'),trange(16,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        DOST,labelnames,nd,pbar=np.zeros((16,1001),dtype = 'float'),np.chararray(16, itemsize=23),np.zeros((16,2),dtype = 'float'),trange(16,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j in pbar:
             (nd[j], NewSigma, DOST[j], Lor, omega, selectpT, selectpcT),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
             DEDlib.DOSplot(DOST[j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma'])
