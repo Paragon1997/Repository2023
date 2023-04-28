@@ -189,8 +189,8 @@ if __name__ == '__main__':
     filenames.close()
 
     #Stdev calculator as a function of N
-    filename,labelnames,Nstdev,stdev='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED \it{n=4}$'],np.logspace(2, 5, num=50, base=10,dtype='int'),np.zeros(50)
-    Npbar,pbar=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calc',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),trange(20,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    filename,labelnames,Nstdev,stdev='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED \it{n=4}$'],np.logspace(2, 5, num=50, base=10,dtype='int'),np.zeros((50,1001))
+    Npbar,pbar=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calculations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),trange(20,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     for i,N in enumerate(Npbar):
         DOST=np.zeros((20,1001),dtype = 'complex_')
         for j in pbar:
@@ -200,7 +200,7 @@ if __name__ == '__main__':
     Npbar.close()
     stdavg=stdev/np.sqrt(len(DOST))
     DEDlib.stdplot(Nstdev,stdavg,filename,labelnames[2])
-    np.savetxt(filename+'.txt',(Nstdev,stdev),delimiter='\t', newline='\n')
+    np.savetxt(filename+'.txt',np.insert(stdev,0,Nstdev,axis=1),delimiter='\t', newline='\n')
 
     #Stop here###############################################################################
 

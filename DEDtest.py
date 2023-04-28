@@ -38,16 +38,30 @@ if __name__ == '__main__':
     #filenames.close()
     #DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'Utotal',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
 
-    input=[{"N" : 10, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'ssn', "Tk" : [0.000000000001,0.001,0.01,0.1,1]}]
-    filenames,labelnames,conname=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000],['','no','soft']
-    DOST=np.zeros((len(input),len(input[0]["Tk"]),1001),dtype = 'complex_')
-    j=0#vary this###############################
-    inpt=input[j]
-    nd, Avgs, DOST[j], Lor, omega, selectpT, selectpcT=DEDlib.main(**inpt)
-    for i,file in enumerate(filenames):
-        DEDlib.DOSplot(DOST[j][i], Lor, omega,file,labelnames[i])
+    #input=[{"N" : 10, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'ssn', "Tk" : [0.000000000001,0.001,0.01,0.1,1]}]
+    #filenames,labelnames,conname=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%1.000],['','no','soft']
+    #DOST=np.zeros((len(input),len(input[0]["Tk"]),1001),dtype = 'complex_')
+    #j=0#vary this###############################
+    #inpt=input[j]
+    #nd, Avgs, DOST[j], Lor, omega, selectpT, selectpcT=DEDlib.main(**inpt)
+    #for i,file in enumerate(filenames):
+    #    DEDlib.DOSplot(DOST[j][i], Lor, omega,file,labelnames[i])
 
-    print(nd)
-    print(len(selectpcT))
+    #print(nd)
+    #print(len(selectpcT))
 
-    print(selectpcT)
+    #print(selectpcT)
+
+    filename,labelnames,Nstdev,stdev='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED \it{n=4}$'],np.logspace(2, 5, num=50, base=10,dtype='int'),np.zeros((50,1001))
+    Npbar,pbar=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calc',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),trange(20,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    for i,N in enumerate(Npbar):
+        DOST=np.zeros((20,1001),dtype = 'complex_')
+        for j in pbar:
+            _, _, DOST[j], _, omega, _, _=DEDlib.main(N=N,posb=2)
+        pbar.close()
+        stdev[i]=np.sqrt(np.sum([(DOS-np.mean(DOST,axis=0))**2 for DOS in DOST],axis=0)/(len(DOST)-1))
+        print(stdev)
+    Npbar.close()
+    stdavg=stdev/np.sqrt(len(DOST))
+    DEDlib.stdplot(Nstdev,stdavg,filename,labelnames[2])
+    np.savetxt(filename+'.txt',(Nstdev,stdev),delimiter='\t', newline='\n')
