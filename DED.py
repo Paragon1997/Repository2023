@@ -188,13 +188,27 @@ if __name__ == '__main__':
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     filenames.close()
 
+    #Stdev calculator as a function of N
+    filename,labelnames,Nstdev,stdev='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED \it{n=4}$'],np.logspace(2, 5, num=50, base=10,dtype='int'),np.zeros(50)
+    Npbar,pbar=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calc',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),trange(20,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    for i,N in enumerate(Npbar):
+        DOST=np.zeros((20,1001),dtype = 'complex_')
+        for j in pbar:
+            _, _, DOST[j], _, omega, _, _=DEDlib.main(N=N,posb=2)
+        pbar.close()
+        stdev[i]=np.sqrt(np.sum([(DOS-np.mean(DOST,axis=0))**2 for DOS in DOST],axis=0)/(len(DOST)-1))
+    Npbar.close()
+    stdavg=stdev/np.sqrt(len(DOST))
+    DEDlib.stdplot(Nstdev,stdavg,filename,labelnames[2])
+    np.savetxt(filename+'.txt',(Nstdev,stdev),delimiter='\t', newline='\n')
+
     #Stop here###############################################################################
 
     #figure out why u=0 does not give rho0 for r=2.3
 
     #vary t=1 to check impact nanoribbons
 
-    #calculatse stdev of SAIM DED method with repeated sims with various N's
+    #add entropy calc to temp sims
 
     ######################################################################### Extra simulation to check if no constraint is correct for n=6 (does not work yet needs more testing)##########################################################################
 

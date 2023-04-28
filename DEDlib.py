@@ -293,6 +293,28 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.close()
     return plt
 
+def stdplot(Nstdev,stdavg,name,labelname):
+    plt.figure(figsize=(10,8))
+    plt.rc('legend', fontsize=17)
+    plt.rc('font', size=25)
+    plt.rc('xtick', labelsize=25)
+    plt.rc('ytick', labelsize=25)
+    axis_font = {'fontname':'Calibri', 'size':'25'}
+    plt.xlim(min(Nstdev), max(Nstdev))
+    plt.xscale('log')
+    plt.xlabel("$N$ [-]", **axis_font)
+    plt.gca().set_ylabel("$\\sigma$($N$)",va="bottom", rotation=0,labelpad=30,**axis_font)
+    plt.plot(Nstdev,stdavg, color='black',linewidth=4,label=labelname)
+    plt.legend(fancybox=False).get_frame().set_edgecolor('black')
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(name+'.png', format='png')
+    plt.savefig(name+'.svg', format='svg', dpi=3600)
+    plt.draw()
+    plt.pause(5)
+    plt.close()
+    return plt
+    
 def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[]):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
 File writing function for DED results."""
