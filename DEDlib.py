@@ -304,7 +304,7 @@ def stdplot(Nstdev,stdavg,name,labelname):
     plt.xscale('log')
     plt.xlabel("$N$ [-]", **axis_font)
     plt.gca().set_ylabel("$\\sigma$($N$)",va="bottom", rotation=0,labelpad=30,**axis_font)
-    plt.plot(Nstdev,np.mean(stdavg,axis=1), color='black',linewidth=4,label=labelname)
+    plt.plot(Nstdev,np.mean(stdavg,axis=1),'-', color='black',linewidth=2,label=labelname)
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
