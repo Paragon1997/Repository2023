@@ -230,7 +230,7 @@ if __name__ == '__main__':
         for j,imp in enumerate(posimp):
             DOST,nonintrho=np.zeros((len(filenames),4001),dtype = 'float'),np.zeros((len(filenames),4001),dtype = 'float')
             for i,file in enumerate(filenames):
-                psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[k](*args[k],t=t[i]),colorbnd[k],'GrapheneNR'+structname[j]+str(imp)+'pos')
+                psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j],t=t[i]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
                 nd[j,i], AvgSigmadat, DOST[i], nonintrho[i], omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
                 DEDlib.DOSplot(DOST[i], nonintrho[i], omega,'GrapheneNR'+file+structname[j]+selecm[l],labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+file+structname[j]+selecm[l])
