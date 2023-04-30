@@ -160,6 +160,7 @@ if __name__ == '__main__':
             posb.close()
             np.savetxt('GrapheneNR'+structname[k]+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
         posimp.close()
+    input.close()
 
     #Temperature dependence interacting impurity DOS with modified constraint for the temperature
     input=[{"N" : 200000, "poles" : 4, "Ed" : -3/2, "etaco" : [0.02,1e-24], "ctype" : 'n', "Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
@@ -178,6 +179,23 @@ if __name__ == '__main__':
     pbar.close()
     conlabel,fDOS=['$\it{k_bT= %.0f}$, (constr.)'%0,'$\it{k_bT= %.0f}$, (no constr.)'%0,'$\it{k_bT= %.0f}$, (constr.)'%1,'$\it{k_bT= %.0f}$, (no constr.)'%1],[DOST[0][0],DOST[1][0],DOST[0][4],DOST[1][4]]
     DEDlib.DOSmultiplot(omega,np.tile(omega, (4,1)),fDOS,np.tile(len(omega), 4),conlabel,'constrTtotal',Lor)
+
+    #Temperature dependence interacting graphene nanoribbon center DOS of Anderson impurity model
+    input=tqdm([{"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
+           {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    filenames,labelnames,selecm=['4pT1e-12','4pT1e-3','4pT1e-2','4pT1e-1','4pT3e-1','4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','eigval']
+    posimp,func,args,colorbnd,structname,nd=tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,5,2),dtype = 'float')
+    for l,inp in enumerate(input):
+        for j,imp in enumerate(posimp):
+            psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
+            nd[j], AvgSigmadat, DOST, nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=2)
+            for i,file in enumerate(filenames):
+                DEDlib.DOSplot(DOST[i], nonintrho, omega,'GrapheneNR'+file+structname[j]+selecm[l],labelnames[i],log=True)
+                DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+file+structname[j]+selecm[l])
+            DEDlib.DOSmultiplot(omega,np.tile(omega, (len(inp["Tk"]),1)),DOST,np.tile(len(omega), len(inp["Tk"])),labelnames,'GTtotal'+structname[j]+selecm[l],nonintrho,log=True)
+        posimp.close()
+        np.savetxt('TGrapheneNR'+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
+    input.close()
     
     #Check noconstraint n=5,6
     input=[{"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : ' '},
@@ -203,11 +221,28 @@ if __name__ == '__main__':
     DEDlib.stdplot(Nstdev,stdavg,filename,labelnames[2])
     np.savetxt(filename+'.txt',np.insert(stdev,0,Nstdev,axis=1),delimiter='\t', newline='\n')
 
+    #Interacting graphene nanoribbon center DOS of Anderson impurity model for various t values
+    input=tqdm([{"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False},
+           {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    filenames,labelnames,selecm=tqdm(['cssnt0_1','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\it{t= 0.1}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],['','eigval']
+    t,posimp,func,args,colorbnd,structname,nd=[0.1,0.5,1.0,1.5,2.0],tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,5,2),dtype = 'float')
+    for l,inp in enumerate(input):
+        for j,imp in enumerate(posimp):
+            DOST,nonintrho=np.zeros((len(filenames),4001),dtype = 'float'),np.zeros((len(filenames),4001),dtype = 'float')
+            for i,file in enumerate(filenames):
+                psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[k](*args[k],t=t[i]),colorbnd[k],'GrapheneNR'+structname[j]+str(imp)+'pos')
+                nd[j,i], AvgSigmadat, DOST[i], nonintrho[i], omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
+                DEDlib.DOSplot(DOST[i], nonintrho[i], omega,'GrapheneNR'+file+structname[j]+selecm[l],labelnames[i],log=True)
+                DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+file+structname[j]+selecm[l])
+            filenames.close()
+            DEDlib.DOSmultiplot(omega,np.tile(omega, (len(filenames),1)),DOST,np.tile(len(omega), len(filenames)),labelnames,'GrapheneNRt'+structname[l]+str(imp)+'pos'+selecm[l],nonintrho[2],log=True)
+        posimp.close()
+        np.savetxt('tGrapheneNR'+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
+    input.close()
+
     #Stop here###############################################################################
 
     #figure out why u=0 does not give rho0 for r=2.3
-
-    #vary t=1 to check impact nanoribbons
 
     #add entropy calc to temp sims
 
