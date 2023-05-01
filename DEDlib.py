@@ -296,10 +296,9 @@ Multi plot function to combine datasets in one graph for comparison including a 
 def stdplot(Nstdev,stdavg,name,labelname):
     plt.figure(figsize=(10,8))
     plt.rc('legend', fontsize=17)
-    plt.rc('font', size=25)
-    plt.rc('xtick', labelsize=25)
-    plt.rc('ytick', labelsize=25)
-    axis_font = {'fontname':'Calibri', 'size':'25'}
+    plt.rc('xtick', labelsize=15)
+    plt.rc('ytick', labelsize=15)
+    axis_font = {'fontname':'Calibri', 'size':'17'}
     plt.xlim(min(Nstdev), max(Nstdev))
     plt.xscale('log')
     plt.xlabel("$N$ [-]", **axis_font)
