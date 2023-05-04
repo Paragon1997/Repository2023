@@ -22,7 +22,7 @@ if __name__ == '__main__':
     {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'n%2'}]
     filenames,labelnames=tqdm(['constraintN2p','constraintN3p','constraintN4p','constraintN5p','constraintN6p','noconstraintN4p','constraint%2N4p'],position=0,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\\rho_{constr.},N,$n=2','$\\rho_{constr.},N,$n=3','$\\rho_{constr.},N,$n=4','$\\rho_{constr.},N,$n=5','$\\rho_{constr.},N,$n=6','$\\rho_{no constr.},$n=4','$\\rho_{constr.},$$N\\%$2,n=4']
     for i,file in enumerate(filenames):
-        nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        nd, _, fDOS, Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
         DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     filenames.close()
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     DOST=np.zeros((len(filenames),int(input[-2]["N"]*input[-2]["poles"]/200)-1),dtype = 'float')
     omegap=np.zeros((len(filenames),int(input[-2]["N"]*input[-2]["poles"]/200)-1),dtype = 'float')
     for i,file in enumerate(filenames):
-        nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        nd, _, fDOS, Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
         omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],DOSsm,DOSnon=DEDlib.PolestoDOS(np.ravel(selectpcT),np.ravel(selectpT))
         DEDlib.DOSplot(DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1], DEDlib.Lorentzian(omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],0.3,4)[0], omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],file,labelnames[i])
         DEDlib.textfileW(omegap[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],np.ravel(selectpT),np.ravel(selectpcT),DOST[i,:int(input[i]["N"]*input[i]["poles"]/200)-1],file)
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     filenames,labelnames=tqdm(['cN4p0U','cN4p1_5U','cN4p3U','cN4p4_5U','cN4p6U','cN4p7_5U'],position=0,leave=False,desc='No. SAIM DED U sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\it{U=0.0}$','$\it{U=1.5}$','$\it{U=3.0}$','$\it{U=4.5}$','$\it{U=6.0}$','$\it{U=7.5}$']
     DOST=np.zeros((len(filenames),1001),dtype = 'float')
     for i,file in enumerate(filenames):
-        nd, _, DOST[i], Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        nd, _, DOST[i], Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
         DEDlib.DOSplot(DOST[i], Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
     filenames.close()
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     filenames,labelnames=tqdm(['cN4p_15G','cN4p_3G','cN4p_45G','cN4p_6G','cN4p_75G'],position=0,leave=False,desc='No. SAIM DED Gamma sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\Gamma\it{=0.15}$','$\\Gamma\it{=0.30}$','$\\Gamma\it{=0.45}$','$\\Gamma\it{=0.60}$','$\\Gamma\it{=0.75}$']
     DOST=np.zeros((len(filenames),1001),dtype = 'float')
     for i,file in enumerate(filenames):
-        nd, _, DOST[i], Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        nd, _, DOST[i], Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
         DEDlib.DOSplot(DOST[i], Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
     filenames.close()
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     filenames,labelnames=tqdm(['cN4p_01+1e-39eta','cN4p_02+1e-39eta','cN4p_04+1e-39eta','cN4p_00+0.001eta','cN4p_00+0.01eta','cN4p_00+0.1eta'],position=0,leave=False,desc='No. SAIM DED eta sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\\eta=0.01|\\omega|$','$\\eta=0.02|\\omega|$','$\\eta=0.04|\\omega|$','$\\eta=0.001$','$\\eta=0.010$','$\\eta=0.100$']
     DOST=np.zeros((len(filenames),1001),dtype = 'float')
     for i,file in enumerate(filenames):
-        nd, _, DOST[i], Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        nd, _, DOST[i], Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
         DEDlib.DOSplot(DOST[i], Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file)
     filenames.close()
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     for i,file in enumerate(filenames):
         DOST,labelnames,nd,pbar=np.zeros((16,1001),dtype = 'float'),np.chararray(16, itemsize=23),np.zeros((16,2),dtype = 'float'),trange(16,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j in pbar:
-            (nd[j], NewSigma, DOST[j], Lor, omega, selectpT, selectpcT),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
+            (nd[j], NewSigma, DOST[j], Lor, omega, selectpT, selectpcT,tsim),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
             DEDlib.DOSplot(DOST[j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma'])
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[j],file+'%.16fSigma'%input[i]['Sigma'],NewSigma)
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[int(np.round(len(NewSigma)/2))]),rtol=6e-4, atol=1e-5): break
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             for i,file in enumerate(filenames):
                 if j==1: inp[i]['Edcalc']='AS'
                 else: inp[i]['Edcalc']=''
-                nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i],posb=3)
+                nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i],posb=3)
                 DEDlib.DOSplot(DOST[i], nonintrho, omega,file+selecm[l],labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
             filenames.close()
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                 DOST=np.zeros((len(filenames),4001),dtype = 'float')
                 psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[k](*args[k]),colorbnd[k],'GrapheneNR'+structname[k]+str(imp)+'pos')
                 for i,file in enumerate(filenames):
-                    nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i],posb=4)
+                    nd[j,i], AvgSigmadat, DOST[i], nonintrho, omega, selectpT, selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp[i],posb=4)
                     DEDlib.DOSplot(DOST[i], nonintrho, omega,file+selecm[l],labelnames[i],log=True)
                     DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
                 filenames.close()
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     filenames,labelnames,conname,pbar=['cN4pT1e-12','cN4pT1e-3','cN4pT1e-2','cN4pT1e-1','cN4pT3e-1','cN4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','no','soft','smartsoft'],tqdm(input,position=0,leave=False,desc='No. T-dependent SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     DOST=np.zeros((len(input),len(input[0]["Tk"]),1001),dtype = 'complex_')
     for j,inpt in enumerate(pbar):
-        nd, _, DOST[j], Lor, omega, selectpT, selectpcT=DEDlib.main(**inpt)
+        nd, _, DOST[j], Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**inpt)
         for i,file in enumerate(filenames):
             DEDlib.DOSplot(DOST[j][i], Lor, omega,conname[j]+file,labelnames[i])
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[j][i],conname[j]+file)
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     for l,inp in enumerate(input):
         for j,imp in enumerate(posimp):
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
-            nd[j], AvgSigmadat, DOST, nonintrho, omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=2)
+            nd[j], AvgSigmadat, DOST, nonintrho, omega, selectpT, selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=2)
             for i,file in enumerate(filenames):
                 DEDlib.DOSplot(DOST[i], nonintrho, omega,'GrapheneNR'+file+structname[j]+selecm[l],labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+file+structname[j]+selecm[l])
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     {"N" : 20000, "poles" : 6, "Ed" : -3/2, "ctype" : ' '}]
     filenames,labelnames=tqdm(['noconstraintN5p','noconstraintN6p'],position=0,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\\rho_{no constr.},$n=5','$\\rho_{no constr.},$n=6']
     for i,file in enumerate(filenames):
-        nd, _, fDOS, Lor, omega, selectpT, selectpcT=DEDlib.main(**input[i])
+        nd, _, fDOS, Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
         DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     filenames.close()
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     for i,N in enumerate(Npbar):
         DOST=np.zeros((20,1001),dtype = 'complex_')
         for j in pbar:
-            _, _, DOST[j], _, omega, _, _=DEDlib.main(N=N,posb=2)
+            _, _, DOST[j], _, omega, _, _,tsim=DEDlib.main(N=N,posb=2)
         pbar.close()
         stdev[i]=np.sqrt(np.sum([(DOS-np.mean(DOST,axis=0))**2 for DOS in DOST],axis=0)/(len(DOST)-1))
     Npbar.close()
@@ -225,7 +225,7 @@ if __name__ == '__main__':
             DOST,nonintrho=np.zeros((len(filenames),4001),dtype = 'float'),np.zeros((len(filenames),4001),dtype = 'float')
             for i,file in enumerate(filenames):
                 psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j],t=t[i]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
-                nd[j,i], AvgSigmadat, DOST[i], nonintrho[i], omega, selectpT, selectpcT=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
+                nd[j,i], AvgSigmadat, DOST[i], nonintrho[i], omega, selectpT, selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
                 DEDlib.DOSplot(DOST[i], nonintrho[i], omega,'GrapheneNR'+file+structname[j]+selecm[l],labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+file+structname[j]+selecm[l])
             filenames.close()
