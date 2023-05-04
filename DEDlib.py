@@ -30,8 +30,7 @@ Defines the Jordan Wigner transformation for a 1D lattice."""
 def Lorentzian(omega, Gamma, poles,Ed=-3/2,Sigma=3/2):
     """Lorentzian(omega, Gamma, poles,Ed=-3/2,Sigma=3/2). 
 Defines the non-interacting DOS (rho0) and selects random sites based on the number of sites in the 1D lattice model and the calculated distribution."""
-    p = np.random.uniform(0, 1, poles)
-    return -np.imag(1/(omega-Ed-Sigma+1j*Gamma))/np.pi, np.array([Gamma * np.tan(np.pi * (p[i] - 1 / 2))+Ed+Sigma for i in range(poles)])
+    return -np.imag(1/(omega-Ed-Sigma+1j*Gamma))/np.pi, np.array([Gamma * np.tan(np.pi * (pi - 1 / 2))+Ed+Sigma for pi in np.random.uniform(0, 1, poles)])
 
 @njit
 def Startrans(poles,select,omega, eta,row=0):
