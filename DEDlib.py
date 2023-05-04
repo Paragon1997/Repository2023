@@ -4,14 +4,12 @@
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 from tqdm.auto import trange
-from time import time
 from qutip import *
 import numpy as np
 import matplotlib.pyplot as plt
 import kwant
 from numpy import sqrt
 import scipy
-from itertools import repeat
 from numba import njit
 
 #class DED:
