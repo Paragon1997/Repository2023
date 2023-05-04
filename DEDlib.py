@@ -139,7 +139,7 @@ The main DED function simulating the Anderson impurity model for given parameter
             selectpT.append(select)
         Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
-        if ctype=='sn': pbar.n=len(selectpcT)
+        if ctype=='sn': pbar.n+=1
         else: pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
@@ -214,7 +214,7 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
             selectpT.append(select)
         Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag() * c[0] + c[1].dag() * c[1]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
-        if ctype=='sn': pbar.n=len(selectpcT)
+        if ctype=='sn': pbar.n+=1
         else: pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
