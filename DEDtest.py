@@ -19,7 +19,7 @@ import DEDlib
 
 if __name__ == '__main__':
     # Comparison of DED spectra for the symmetric Anderson model for several constaints and sites
-    input={"N" : 200, "poles" : 2, "Ed" : -3/2, "ctype" : 'n'}
+    input={"N" : 2000, "poles" : 2, "Ed" : -3/2, "ctype" : 'n'}
     file,labelnames='constraintN2p','$\\rho_{constr.},N,$n=2'
     nd, _, fDOS, Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input)
     DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames)
