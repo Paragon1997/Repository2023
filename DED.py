@@ -201,8 +201,18 @@ if __name__ == '__main__':
             np.savetxt(file+c+'.txt',np.c_[Tk,S_imp[3*j+i],S_tot[3*j+i],S_bath[3*j+i]],delimiter='\t', newline='\n')
         filenames.close()
     ctypes.close()
-    DEDlib.Entropyplot(Tk,S_imp,'STtotal',np.char.add(np.repeat(labelnames,len(input)),np.tile([str(inp["poles"]) for inp in input],len(labelnames))))
-    
+    DEDlib.Entropyplot(Tk,S_imp,np.char.add(np.repeat(labelnames,len(input)),np.tile([str(inp["poles"]) for inp in input],len(labelnames))),'STtotal')
+
+    #Impurity entropy for different Gamma values of the SAIM
+    input={"N" : 20000, "poles" : 6, "ctype" : 'sn'}
+    Gamma,filenames,labelnames=[0.2,0.3,0.5,0.9],tqdm(['ST0_2G','ST0_3G','ST0_5G','ST0_9G'],position=0,leave=False,desc='No. Gamma Entropy DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\Gamma\it{=0.2}$','$\Gamma\it{=0.3}$','$\Gamma\it{=0.5}$','$\Gamma\it{=0.9}$'],np.zeros((4,801)),np.zeros((4,801)),np.zeros((4,801))
+    for i,file in enumerate(filenames):
+        S_imp[i],S_tot[i],S_bath[i],Nfin,Tk,tsim=DEDlib.Entropyimp_main(**input,Gamma=Gamma[i])
+        DEDlib.Entropyplot(Tk,S_imp[i],labelnames[i],file)
+        np.savetxt(file+'.txt',np.c_[Tk,S_imp[i],S_tot[i],S_bath[i]],delimiter='\t', newline='\n')
+    filenames.close()
+    DEDlib.Entropyplot(Tk,S_imp,labelnames,'STtotalG')
+
     #Check noconstraint n=5,6
     input=[{"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : ' '},
     {"N" : 20000, "poles" : 6, "Ed" : -3/2, "ctype" : ' '}]
