@@ -190,6 +190,18 @@ if __name__ == '__main__':
         posimp.close()
         np.savetxt('TGrapheneNR'+selecm[l]+'nd.txt',nd,delimiter='\t', newline='\n')
     input.close()
+
+    #The impurity entropy calculated by DED for different constraints and site quantities
+    input=[{"N" : 200000, "poles" : 2},{"N" : 200000, "poles" : 4},{"N" : 20000, "poles" : 6}]
+    ctypes,filenames,labelnames,S_imp,S_tot,S_bath=tqdm(['n',' ','sn'],position=0,leave=False,desc='No. constraints Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),tqdm(['ST2p','ST4p','ST6p'],position=1,leave=False,desc='No. poles Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$constr. N,$n=','$no constr. N,$n=','$soft constr. N,$n='],np.zeros((9,801)),np.zeros((9,801)),np.zeros((9,801))
+    for j,c in enumerate(ctypes):
+        for i,file in enumerate(filenames):
+            S_imp[3*j+i],S_tot[3*j+i],S_bath[3*j+i],Nfin,Tk,tsim=DEDlib.Entropyimp_main(**input[i],ctype=c,posb=2)
+            DEDlib.Entropyplot(Tk,S_imp[3*j+i],labelnames[j]+input[i]["poles"],file+c)
+            np.savetxt(file+c+'.txt',np.c_[Tk,S_imp[3*j+i],S_tot[3*j+i],S_bath[3*j+i]],delimiter='\t', newline='\n')
+        filenames.close()
+    ctypes.close()
+    DEDlib.Entropyplot(Tk,S_imp,'STtotal',np.char.add(np.repeat(labelnames,len(input)),np.tile([str(inp["poles"]) for inp in input],len(labelnames))))
     
     #Check noconstraint n=5,6
     input=[{"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : ' '},
@@ -217,7 +229,7 @@ if __name__ == '__main__':
 
     #Interacting graphene nanoribbon center DOS of Anderson impurity model for various t values
     input=tqdm([{"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False},
-           {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     filenames,labelnames,selecm=tqdm(['cssnt0_1','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\it{t= 0.1}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],['','eigval']
     t,posimp,func,args,colorbnd,structname,nd=[0.1,0.5,1.0,1.5,2.0],tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,5,2),dtype = 'float')
     for l,inp in enumerate(input):
@@ -237,8 +249,6 @@ if __name__ == '__main__':
     #Stop here###############################################################################
 
     #figure out why u=0 does not give rho0 for r=2.3
-
-    #add entropy calc to temp sims
 
     ######################################################################### Extra simulation to check if no constraint is correct for n=6 (does not work yet needs more testing)##########################################################################
 

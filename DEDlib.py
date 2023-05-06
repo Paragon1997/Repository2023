@@ -175,7 +175,7 @@ def SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin):
     for ek in E_k: S_bath+=2*kb*(np.logaddexp(np.zeros(len(Tk)),-ek/Tk)+ek/np.exp(np.logaddexp(np.zeros(len(Tk)),ek/Tk))/Tk)
     return S_t+S_tot*constr,S_b+S_bath*constr,S_imp+(S_tot-S_bath)*constr,Nfin+constr
 
-def Entropyimp(N=10000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',bound=3,Tk=[0],kb=1,posb=0):
+def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',bound=3,Tk=np.logspace(-6,2,801,base=10),kb=1,posb=1):
     omega,eta,selectpcT,selectpT,S_imp,S_t,S_b,c=np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[],np.zeros(len(Tk),dtype=np.float64),np.zeros(len(Tk),dtype=np.float64),np.zeros(len(Tk),dtype=np.float64),[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
     n,Nfin,pbar=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros(len(Tk),dtype = 'float'),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     while pbar.n<N:
@@ -195,7 +195,7 @@ def Entropyimp(N=10000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=
         else: pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
-    return np.abs(S_imp/Nfin).squeeze(),np.real(S_t/Nfin).squeeze(),np.real(S_b/Nfin).squeeze(),Nfin.squeeze(),(pbar.format_dict["n"],pbar.format_dict["elapsed"])
+    return np.abs(S_imp/Nfin).squeeze(),np.real(S_t/Nfin).squeeze(),np.real(S_b/Nfin).squeeze(),Nfin.squeeze(),Tk,(pbar.format_dict["n"],pbar.format_dict["elapsed"])
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
@@ -331,6 +331,31 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom", rotation=0,labelpad=30,**axis_font)
     plt.plot(omega,rho0, '--',color='black',linewidth=4,label='$\\rho_0$')
     for i,p in enumerate(plotp): plt.plot(omegap[i,:p],DOST[i,:p],colors[i],linewidth=2,label=labels[i],alpha=0.7)
+    plt.legend(fancybox=False).get_frame().set_edgecolor('black')
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(name+'.png', format='png')
+    plt.savefig(name+'.svg', format='svg', dpi=3600)
+    plt.draw()
+    plt.pause(5)
+    plt.close()
+    return plt
+
+def Entropyplot(Tk,S_imp,labels,name):
+    colors=['crimson','darkorange','goldenrod','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
+    plt.figure(figsize=(10,8))
+    plt.rc('legend', fontsize=17)
+    plt.rc('xtick', labelsize=15)
+    plt.rc('ytick', labelsize=15)
+    axis_font = {'fontname':'Calibri', 'size':'17'}
+    plt.xlim(min(Tk), max(Tk))
+    plt.xscale('log')
+    plt.xlabel("$k_BT$", **axis_font)
+    plt.gca().set_ylabel("$S_{imp}(k_B)$",va="bottom", rotation=0,labelpad=30,**axis_font)
+    plt.gca().set_ylim(bottom=0,top=1.4)
+    if len(S_imp.shape)==1: plt.plot(Tk,S_imp,'-r',linewidth=2,label=labels)
+    else:
+        for i,S in enumerate(S_imp): plt.plot(Tk,S,'-', color=colors[i],linewidth=2,label=labels[i])
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
