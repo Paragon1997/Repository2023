@@ -29,3 +29,4 @@ if __name__ == '__main__':
         filenames.close()
     ctypes.close()
     DEDlib.Entropyplot(Tk,S_imp,np.char.add(np.repeat(labelnames,len(input)),np.tile([str(inp["poles"]) for inp in input],len(labelnames))),'STtotal')
+
