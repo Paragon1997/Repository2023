@@ -350,8 +350,8 @@ def Entropyplot(Tk,S_imp,labels,name):
     axis_font = {'fontname':'Calibri', 'size':'17'}
     plt.xlim(min(Tk), max(Tk))
     plt.xscale('log')
-    plt.xlabel("$k_BT$", **axis_font)
-    plt.gca().set_ylabel("$S_{imp}(k_B)$",va="bottom", rotation=0,labelpad=30,**axis_font)
+    plt.xlabel("$k_BT$ [-]", **axis_font)
+    plt.gca().set_ylabel("$S_{imp}$($k_B$)",va="bottom", rotation=0,labelpad=40,**axis_font)
     plt.gca().set_ylim(bottom=0,top=1.4)
     if len(S_imp.shape)==1: plt.plot(Tk,S_imp,'-r',linewidth=2,label=labels)
     else:

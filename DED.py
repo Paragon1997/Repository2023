@@ -193,7 +193,7 @@ if __name__ == '__main__':
 
     #The impurity entropy calculated by DED for different constraints and site quantities
     input=[{"N" : 200000, "poles" : 2},{"N" : 200000, "poles" : 4},{"N" : 20000, "poles" : 6}]
-    ctypes,filenames,labelnames,S_imp,S_tot,S_bath=tqdm(['n',' ','sn'],position=0,leave=False,desc='No. constraints Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),tqdm(['ST2p','ST4p','ST6p'],position=1,leave=False,desc='No. poles Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$constr. N,$n=','$no constr. N,$n=','$soft constr. N,$n='],np.zeros((9,801)),np.zeros((9,801)),np.zeros((9,801))
+    ctypes,filenames,labelnames,S_imp,S_tot,S_bath=tqdm(['n',' ','sn'],position=0,leave=False,desc='No. constraints Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),tqdm(['ST2p','ST4p','ST6p'],position=1,leave=False,desc='No. poles Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$N$ constr.,n=','no constr.,n=','$P(N,N_0)$ constr.,n='],np.zeros((9,801)),np.zeros((9,801)),np.zeros((9,801))
     for j,c in enumerate(ctypes):
         for i,file in enumerate(filenames):
             S_imp[3*j+i],S_tot[3*j+i],S_bath[3*j+i],Nfin,Tk,tsim=DEDlib.Entropyimp_main(**input[i],ctype=c,posb=2)
