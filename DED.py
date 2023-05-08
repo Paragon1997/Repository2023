@@ -178,8 +178,9 @@ if __name__ == '__main__':
     input=tqdm([{"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
            {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     filenames,labelnames,selecm=['4pT1e-12','4pT1e-3','4pT1e-2','4pT1e-1','4pT3e-1','4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','eigval']
-    posimp,func,args,colorbnd,structname,nd=tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,2,6),dtype = 'float')
+    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,2,6),dtype = 'float')
     for l,inp in enumerate(input):
+        posimp=tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j,imp in enumerate(posimp):
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
             nd[j], AvgSigmadat, DOST, nonintrho, omega, selectpT, selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=2)
@@ -193,8 +194,9 @@ if __name__ == '__main__':
 
     #The impurity entropy calculated by DED for different constraints and site quantities
     input=[{"N" : 200000, "poles" : 2},{"N" : 200000, "poles" : 4},{"N" : 20000, "poles" : 6}]
-    ctypes,filenames,labelnames,S_imp,S_tot,S_bath=tqdm(['n',' ','sn'],position=0,leave=False,desc='No. constraints Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),tqdm(['ST2p','ST4p','ST6p'],position=1,leave=False,desc='No. poles Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$N$ constr.,n=','no constr.,n=','$P(N,N_0)$ constr.,n='],np.zeros((9,801)),np.zeros((9,801)),np.zeros((9,801))
+    ctypes,labelnames,S_imp,S_tot,S_bath=tqdm(['n',' ','sn'],position=0,leave=False,desc='No. constraints Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$N$ constr.,n=','no constr.,n=','$P(N,N_0)$ constr.,n='],np.zeros((9,801)),np.zeros((9,801)),np.zeros((9,801))
     for j,c in enumerate(ctypes):
+        filenames=tqdm(['ST2p','ST4p','ST6p'],position=1,leave=False,desc='No. poles Entropy DED',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for i,file in enumerate(filenames):
             S_imp[3*j+i],S_tot[3*j+i],S_bath[3*j+i],Nfin,Tk,tsim=DEDlib.Entropyimp_main(**input[i],ctype=c,posb=2)
             DEDlib.Entropyplot(Tk,S_imp[3*j+i],labelnames[j]+str(input[i]["poles"]),file+c)
@@ -225,9 +227,9 @@ if __name__ == '__main__':
 
     #Stdev calculator as a function of N
     filename,labelnames,Nstdev,stdev='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED \it{n=4}$'],np.logspace(2, 5, num=50, base=10,dtype='int'),np.zeros((50,1001))
-    Npbar,pbar=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calculations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),trange(20,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    Npbar=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calculations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     for i,N in enumerate(Npbar):
-        DOST=np.zeros((20,1001),dtype = 'complex_')
+        pbar,DOST=trange(20,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((20,1001),dtype = 'complex_')
         for j in pbar:
             _, _, DOST[j], _, omega, _, _,tsim=DEDlib.main(N=N,posb=2)
         pbar.close()
@@ -240,11 +242,12 @@ if __name__ == '__main__':
     #Interacting graphene nanoribbon center DOS of Anderson impurity model for various t values
     input=tqdm([{"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False},
     {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    filenames,labelnames,selecm=tqdm(['cssnt0_1','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\it{t= 0.1}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],['','eigval']
-    t,posimp,func,args,colorbnd,structname,nd=[0.1,0.5,1.0,1.5,2.0],tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,5,2),dtype = 'float')
+    labelnames,selecm=['$\it{t= 0.1}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],['','eigval']
+    t,func,args,colorbnd,structname,nd=[0.1,0.5,1.0,1.5,2.0],[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,5,2),dtype = 'float')
     for l,inp in enumerate(input):
+        posimp=tqdm([85,74],position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j,imp in enumerate(posimp):
-            DOST,nonintrho=np.zeros((len(filenames),4001),dtype = 'float'),np.zeros((len(filenames),4001),dtype = 'float')
+            filenames,DOST,nonintrho=tqdm(['cssnt0_1','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((len(filenames),4001),dtype = 'float'),np.zeros((len(filenames),4001),dtype = 'float')
             for i,file in enumerate(filenames):
                 psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j],t=t[i]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
                 nd[j,i], AvgSigmadat, DOST[i], nonintrho[i], omega, selectpT, selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
