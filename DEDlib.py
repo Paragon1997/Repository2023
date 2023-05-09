@@ -46,14 +46,26 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
     for i, _ in enumerate(select): G+=1/len(select)/(omega-select[i]+1.j*eta)
     return pbar.T@Pbath@Dbath@Pbath.T@pbar,G,select
 
-def HamiltonianAIM(c,impenergy,bathenergy,Vkk,U,Sigma,H0=0):
+def Operators(c,Nimpurities,poles):
+    posimp=[int(2*poles/Nimpurities*i) for i in range(Nimpurities)]
+    impn=[sum([c[posimp[k]+i].dag()*c[posimp[k]+i] for i in range(2)]) for k in range(Nimpurities)]
+    bathn=[[sum([c[2*j+i+2+posimp[k]].dag()*c[2*j+i+2+posimp[k]] for i in range(2)]) for j in range(int(poles/Nimpurities)-1)] for k in range(Nimpurities)]
+    crossn=[[sum([c[posimp[k]+i].dag()*c[2*j+i+2+posimp[k]]+c[2*j+i+2+posimp[k]].dag()*c[posimp[k]+i] for i in range(2)]) for j in range(int(poles/Nimpurities)-1)] for k in range(Nimpurities)]
+    Un=sum([c[posimp[k]].dag()*c[posimp[k]]*c[posimp[k]+1].dag()*c[posimp[k]+1] for k in range(Nimpurities)])
+    Sigman=sum([c[posimp[k]].dag()*c[posimp[k]]+c[posimp[k]+1].dag()*c[posimp[k]+1] for k in range(Nimpurities)])
+    U2n=sum([c[posimp[k]+i].dag()*c[posimp[k]+i]*c[posimp[l]+j].dag()*c[posimp[l]+j] for i in range(2) for j in range(2) for l in range(Nimpurities) for k in range(Nimpurities) if k !=l])
+    Jn=sum([1/2*(c[posimp[k]].dag()*c[posimp[k]+1]*c[posimp[l]+1].dag()*c[posimp[l]]+c[posimp[k]+1].dag()*c[posimp[k]]*c[posimp[l]].dag()*c[posimp[l]+1])
+                    +1/4*(c[posimp[k]].dag()*c[posimp[k]]-c[posimp[k]+1].dag()*c[posimp[k]+1])*(c[posimp[l]].dag()*c[posimp[l]]-c[posimp[l]+1].dag()*c[posimp[l]+1]) for l in range(Nimpurities) for k in range(Nimpurities) if k!=l])
+    n=[sum([c[j+posimp[i]].dag()*c[j+posimp[i]] for j in range(2*int(poles/Nimpurities))]) for i in range(Nimpurities)]
+    return (impn,bathn,crossn,Un,Sigman,U2n,Jn),n,posimp
+
+def HamiltonianAIM(impenergy,bathenergy,Vkk,U,Sigma,U2,J,Hn,H0=0):
     """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
 Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
-    for i in range(2):
-        H0+=impenergy*(c[i].dag()*c[i])
-        for j, bathE in enumerate(bathenergy):
-            H0+=Vkk[j]*(c[i].dag()*c[2*j+i+2]+c[2*j+i+2].dag()*c[i])+bathE*(c[2*j+i+2].dag()*c[2*j+i+2])
-    return H0,H0+U*(c[0].dag()*c[0]*c[1].dag()*c[1])-Sigma*(c[0].dag()*c[0]+c[1].dag()*c[1])
+    for k in range(len(impenergy)):
+        H0+=impenergy[k]*Hn[0][k]
+        for j in range(len(bathenergy[k])): H0+=bathenergy[k][j]*Hn[1][k][j]+Vkk[k][j]*Hn[2][k][j]
+    return H0,H0+U*Hn[3]-Sigma*Hn[4]+(U2/2-J/4)*Hn[5]-J*Hn[6]
 
 @njit
 def MBGT0(omega,eta,evals,exp,exp2):
@@ -94,25 +106,25 @@ Constraint implementation function for DED method with various possible constrai
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0]
         evals,evecs=scipy.linalg.eigh(H.data.toarray())
         if ctype=='ssn':
-            Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk)*Nfin.astype('int')
+            Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk)*Nfin.astype('int')
             return MBGAIM(omega,H,c,eta,Tk,Boltzmann,evals,evecs,5e-4,np.array([-2,-1,0,1,2])),True
         else:
-            return MBGAIM(omega,H,c,eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n.data@evecs),np.conj(vecs)@n.data@vecs.T)]-evals[0])/Tk),evals,evecs,5e-4,np.array([-2,-1,0,1,2])),True
+            return MBGAIM(omega,H,c,eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk),evals,evecs,5e-4,np.array([-2,-1,0,1,2])),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data),k=1,which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data),k=1,which='SA')[1][:,0])))
-        exp=np.conj(vecs)@n.data@vecs.T
-        if ctype=='n%2' and int(np.round(exp[0,0]))%2==int(np.round(exp[1,1]))%2:
+        exp=[np.conj(vecs)@ni.data@vecs.T for ni in n]
+        if ctype=='n%2' and all([int(np.round(expi[0,0]))%2==int(np.round(expi[1,1]))%2 for expi in exp]):
             return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
-        elif ctype=='n' and np.round(exp[0,0])==np.round(exp[1,1]):
+        elif ctype=='n' and all([np.round(expi[0,0])==np.round(expi[1,1]) for expi in exp]):
             return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
         else:
             return (np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.linalg.eigh(H.data.toarray(),eigvals=[0,0])[1][:,0],
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0])))
-        exp=np.conj(vecs)@n.data@vecs.T
-        if ctype=='dn' and np.round(exp[0,0])==np.round(exp[1,1]):
+        exp=[np.conj(vecs)@ni.data@vecs.T for ni in n]
+        if ctype=='dn' and all([np.round(expi[0,0])==np.round(expi[1,1]) for expi in exp]):
             return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
         else:
             return (np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
@@ -122,17 +134,17 @@ Constraint implementation function for DED method with various possible constrai
 def find_nearest(array,value):
     for i in (i for i,arrval in enumerate(array) if np.isclose(arrval,value,atol=0.1)): return i
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],posb=1):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,selectpcT,selectpT=np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[]
+    omega,eta,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[],int(poles/Nimpurities)
     c,pbar=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    n,AvgSigmadat,Nfin,nd=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
+    (Hn,n,posimp),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
     while pbar.n<N:
         reset=False
         while not reset:
-            NewM,nonG,select=Startrans(poles,np.sort(Lorentzian(omega,Gamma,poles,Ed,Sigma)[1]),omega,eta)
-            H0,H=HamiltonianAIM(c,NewM[0][0],[NewM[k+1][k+1] for k in range(len(NewM)-1)],NewM[0,1:],U,Sigma)
+            NewM,nonG,select=Startrans(Npoles,np.sort(Lorentzian(omega,Gamma,Npoles,Ed,Sigma)[1]),omega,eta)
+            H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
             try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]))
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
