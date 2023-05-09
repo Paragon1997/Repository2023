@@ -1,5 +1,5 @@
 import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore",category=RuntimeWarning)
 from tqdm.auto import tqdm,trange
 import time
 from qutip import *
@@ -11,9 +11,9 @@ from scipy.optimize import fsolve
 
 import DEDlib
 
-if __name__ == '__main__':
+if __name__=='__main__':
     # Comparison of DED spectra for the symmetric Anderson model for several constaints and sites
-    input=[{"N" : 200000, "poles" : 2, "Ed" : -3/2, "ctype" : 'n'},
+    input=[{"N":200000,"poles":2,"Ed":-3/2,"ctype":'n'},
     {"N" : 200000, "poles" : 3, "Ed" : -3/2, "ctype" : 'n'},
     {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'n'},
     {"N" : 200000, "poles" : 5, "Ed" : -3/2, "ctype" : 'n'},
@@ -22,8 +22,8 @@ if __name__ == '__main__':
     {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'n%2'}]
     filenames,labelnames=tqdm(['constraintN2p','constraintN3p','constraintN4p','constraintN5p','constraintN6p','noconstraintN4p','constraint%2N4p'],position=0,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),['$\\rho_{constr.},N,$n=2','$\\rho_{constr.},N,$n=3','$\\rho_{constr.},N,$n=4','$\\rho_{constr.},N,$n=5','$\\rho_{constr.},N,$n=6','$\\rho_{no constr.},$n=4','$\\rho_{constr.},$$N\\%$2,n=4']
     for i,file in enumerate(filenames):
-        nd, _, fDOS, Lor, omega, selectpT, selectpcT,tsim=DEDlib.main(**input[i])
-        DEDlib.DOSplot(fDOS, Lor, omega,file,labelnames[i])
+        nd,_,fDOS,Lor,omega,selectpT,selectpcT,tsim=DEDlib.main(**input[i])
+        DEDlib.DOSplot(fDOS,Lor,omega,file,labelnames[i])
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     filenames.close()
 
