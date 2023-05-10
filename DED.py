@@ -261,6 +261,8 @@ if __name__=='__main__':
 
     #Stop here###############################################################################
 
+    #run TDED with ower offset eta originally 5e-4 now testing for 1e-4
+
     #Temperature dep. + multi orbitals
 
     #figure out why u=0 does not give rho0 for r=2.3
