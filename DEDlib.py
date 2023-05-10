@@ -158,15 +158,6 @@ The main DED function simulating the Anderson impurity model for given parameter
     if Edcalc == 'AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
-def SHamiltonianAIM(c,impenergy,bathenergy,Vkk,U,Sigma,H0=0):
-    """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
-Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
-    for i in range(2):
-        H0+=impenergy*(c[i].dag()*c[i])
-        for j, bathE in enumerate(bathenergy):
-            H0+=Vkk[j]*(c[i].dag()*c[2*j+i+2]+c[2*j+i+2].dag()*c[i])+bathE*(c[2*j+i+2].dag()*c[2*j+i+2])
-    return H0,H0+U*(c[0].dag()*c[0]*c[1].dag()*c[1])-Sigma*(c[0].dag()*c[0]+c[1].dag()*c[1])
-
 def ConstraintS(ctype,H0,H,n,Tk,Nfin=0):
     if ctype[0]=='s':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0]
@@ -198,13 +189,13 @@ def SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin):
 
 def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',bound=3,Tk=np.logspace(-6,2,801,base=10),kb=1,posb=1):
     omega,eta,selectpcT,selectpT,S_imp,S_t,S_b,c=np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[],np.zeros(len(Tk),dtype=np.float64),np.zeros(len(Tk),dtype=np.float64),np.zeros(len(Tk),dtype=np.float64),[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
-    n,Nfin,pbar=sum([c[i].dag()*c[i] for i in range(2*poles)]),np.zeros(len(Tk),dtype='float'),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    (Hn,n),Nfin,pbar=Operators(c,1,poles),np.zeros(len(Tk),dtype='float'),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     while pbar.n<N:
         constr=np.zeros(len(Tk),dtype='float')
         while np.array([con==0 for con in constr]).all():
             NewM,_,select=Startrans(poles,np.sort(Lorentzian(omega,Gamma,poles,Ed,Sigma)[1]),omega,eta)
             E_k=np.array([NewM[k+1][k+1] for k in range(len(NewM)-1)])
-            H0,H=SHamiltonianAIM(c,NewM[0][0],E_k,NewM[0,1:],U,Sigma)
+            H0,H=HamiltonianAIM([NewM[0][0]],[E_k],[NewM[0,1:]],U,Sigma,0,0,Hn)
             constr,evals=ConstraintS(ctype,H0,H,n,Tk)
             selectpT.append(select)
         selectpcT.append(select)
