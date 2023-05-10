@@ -158,6 +158,15 @@ The main DED function simulating the Anderson impurity model for given parameter
     if Edcalc == 'AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
+def SHamiltonianAIM(c,impenergy,bathenergy,Vkk,U,Sigma,H0=0):
+    """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
+Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
+    for i in range(2):
+        H0+=impenergy*(c[i].dag()*c[i])
+        for j, bathE in enumerate(bathenergy):
+            H0+=Vkk[j]*(c[i].dag()*c[2*j+i+2]+c[2*j+i+2].dag()*c[i])+bathE*(c[2*j+i+2].dag()*c[2*j+i+2])
+    return H0,H0+U*(c[0].dag()*c[0]*c[1].dag()*c[1])-Sigma*(c[0].dag()*c[0]+c[1].dag()*c[1])
+
 def ConstraintS(ctype,H0,H,n,Tk,Nfin=0):
     if ctype[0]=='s':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0]
@@ -195,7 +204,7 @@ def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,
         while np.array([con==0 for con in constr]).all():
             NewM,_,select=Startrans(poles,np.sort(Lorentzian(omega,Gamma,poles,Ed,Sigma)[1]),omega,eta)
             E_k=np.array([NewM[k+1][k+1] for k in range(len(NewM)-1)])
-            H0,H=HamiltonianAIM(c,NewM[0][0],E_k,NewM[0,1:],U,Sigma)
+            H0,H=SHamiltonianAIM(c,NewM[0][0],E_k,NewM[0,1:],U,Sigma)
             constr,evals=ConstraintS(ctype,H0,H,n,Tk)
             selectpT.append(select)
         selectpcT.append(select)

@@ -261,6 +261,8 @@ if __name__=='__main__':
 
     #Stop here###############################################################################
 
+    #Temperature dep. + multi orbitals
+
     #figure out why u=0 does not give rho0 for r=2.3
 
     ######################################################################### Extra simulation to check if no constraint is correct for n=6 (does not work yet needs more testing)##########################################################################
