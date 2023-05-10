@@ -196,7 +196,7 @@ def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,
             NewM,_,select=Startrans(poles,np.sort(Lorentzian(omega,Gamma,poles,Ed,Sigma)[1]),omega,eta)
             E_k=np.array([NewM[k+1][k+1] for k in range(len(NewM)-1)])
             H0,H=HamiltonianAIM([NewM[0][0]],[E_k],[NewM[0,1:]],U,Sigma,0,0,Hn)
-            constr,evals=ConstraintS(ctype,H0,H,n,Tk)
+            constr,evals=ConstraintS(ctype,H0,H,n[0],Tk)
             selectpT.append(select)
         selectpcT.append(select)
         if ~np.any(evals): evals=scipy.linalg.eigvalsh(H.data.toarray())
