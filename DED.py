@@ -263,6 +263,10 @@ if __name__=='__main__':
 
     #run TDED with lower offset eta originally 5e-4 now testing for 1e-4
 
+    #add plots total asym and total S
+
+    #large graphene sim
+
     #Temperature dep. + multi orbitals
 
     #figure out why u=0 does not give rho0 for r=2.3
