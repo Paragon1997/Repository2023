@@ -414,4 +414,4 @@ File reader to read DED data writen by textfileW(...)."""
     text_file=open(name,"r")
     lines=text_file.read().split('\n')
     text_file.close()
-    return np.array([np.array(l,dtype=object).astype(np.complex) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]])
+    return np.array([np.array(l,dtype=object).astype(np.complex) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]]).T
