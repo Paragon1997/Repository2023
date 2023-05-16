@@ -175,8 +175,8 @@ if __name__=='__main__':
     DEDlib.DOSmultiplot(omega,np.tile(omega, (4,1)),fDOS,np.tile(len(omega), 4),conlabel,'constrTtotal',Lor)
 
     #Temperature dependence interacting graphene nanoribbon center DOS of Anderson impurity model
-    input=tqdm([{"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
-           {"N" : 200000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    input=tqdm([{"N" : 20000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : False,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]},
+           {"N" : 20000, "poles" : 4, "Ed" : -3/2, "ctype" : 'ssn', "bound" : 8, "eigsel" : True,"Tk" : [0.000000000001,0.001,0.01,0.1,0.3,1]}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     filenames,labelnames,selecm=['4pT1e-12','4pT1e-3','4pT1e-2','4pT1e-1','4pT3e-1','4pT1'],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','eigval']
     func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((2,2,6),dtype = 'float')
     for l,inp in enumerate(input):
