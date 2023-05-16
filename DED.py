@@ -265,8 +265,6 @@ if __name__=='__main__':
 
     #run TDED with lower offset eta originally 5e-4 now testing for 1e-4
 
-    #add plots total S
-
     #large graphene sim
 
     #Temperature dep. + multi orbitals
