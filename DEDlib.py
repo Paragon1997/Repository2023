@@ -230,10 +230,10 @@ Returns data regarding a defined graphene circular structure such as the corresp
     plt.close()
     (eig,P),eta=scipy.linalg.eigh(fsyst.hamiltonian_submatrix(sparse=False)),etaco[0]*abs(omega)+etaco[1]
     eta[int(np.round(len(omega)/2))]=1e-6
-    return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),[np.sum([(abs(Pv[i])**2)/(omega-eigv+1.j*eta) 
-                                    for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp],eig,[np.sum([(abs(Pv[i])**2)
+    return np.abs(P[imp][:])**2/np.linalg.norm(np.abs(P[imp][:])),np.sum([(abs(P[imp][i])**2)/(omega-eigv+1.j*eta) 
+                                    for i,eigv in enumerate(eig)],axis=0),eig,np.sum([(abs(P[imp][i])**2)
                                     /(np.linspace(min(omega),max(omega),omegastat)-eigv+1.j*(etaco[0]*abs(np.linspace(min(omega),max(omega),omegastat))+etaco[1])) 
-                                    for i,eigv in enumerate(eig)],axis=0) for _,Pv in enumerate(P)][imp]
+                                    for i,eigv in enumerate(eig)],axis=0)
 
 def GrapheneNRzigzagstruct(W=2.5,L=12,x=-11.835680518387328,dy=0.5,Wo=0,Lo=0,t=1):
     lat,sys=kwant.lattice.Polyatomic([[sqrt(3)/2,0.5],[0,1]],[[-1/sqrt(12),-0.5],[1/sqrt(12),-0.5]]),kwant.Builder()
