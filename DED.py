@@ -101,17 +101,19 @@ if __name__=='__main__':
     {"N" : 200000, "poles" : 4, "Ed" : -3, "Sigma" : 1.5, "ctype" : 'n', "bound" : 4}]
     filenames=tqdm(['cN4p-1_5Ed','cN4p-1_65Ed','cN4p-1_8Ed','cN4p-2Ed','cN4p-2_5Ed','cN4p-3Ed'],position=0,leave=False,desc='No. ASAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     for i,file in enumerate(filenames):
-        DOST,labelnames,nd,pbar=np.zeros((16,1001),dtype = 'float'),np.chararray(16, itemsize=23),np.zeros((16,2),dtype = 'float'),trange(16,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        DOST,labelnames,nd,pbar=np.zeros((len(input),16,1001),dtype = 'float'),np.chararray(16, itemsize=23),np.zeros((16,2),dtype = 'float'),trange(16,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j in pbar:
-            (nd[j], NewSigma, DOST[j], Lor, omega, selectpT, selectpcT,tsim),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
-            DEDlib.DOSplot(DOST[j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma'])
-            DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[j],file+'%.16fSigma'%input[i]['Sigma'],NewSigma)
+            (nd[j], NewSigma, DOST[i,j], Lor, omega, selectpT, selectpcT,tsim),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
+            DEDlib.DOSplot(DOST[i,j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma'])
+            DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i,j],file+'%.16fSigma'%input[i]['Sigma'],NewSigma)
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[int(np.round(len(NewSigma)/2))]),rtol=6e-4, atol=1e-5): break
             input[i]['Sigma']=np.real(NewSigma[int(np.round(len(NewSigma)/2))])
         pbar.close()
         np.savetxt(file+'%.16fSigma'%np.real(NewSigma[int(np.round(len(NewSigma)/2))])+'nd.txt',nd,delimiter='\t', newline='\n')
-        DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[~np.all(DOST == 0, axis=1)],np.tile(len(omega), j+1),labelnames[:j+1].astype(str),'Asymtotal'+file,DEDlib.Lorentzian(omega,0.3,4,input[i]['Ed'],3/2)[0])
+        DEDlib.DOSmultiplot(omega,np.tile(omega, (j+1,1)),DOST[i,~np.all(DOST[i] == 0, axis=1)],np.tile(len(omega), j+1),labelnames[:j+1].astype(str),'Asymtotal'+file,DEDlib.Lorentzian(omega,0.3,4,input[i]['Ed'],3/2)[0])
     filenames.close()
+    labelnames=['$\\rho,\\epsilon_d=%.1f$'%1.5,'$\\rho,\\epsilon_d=%.2f$'%1.65,'$\\rho,\\epsilon_d=%.1f$'%1.8,'$\\rho,\\epsilon_d=%.1f$'%2.0,'$\\rho,\\epsilon_d=%.1f$'%2.5,'$\\rho,\\epsilon_d=%.1f$'%3.0]
+    DEDlib.DOSmultiplot(omega,np.tile(omega, (len(input),1)),np.array([DOST[i,np.max(np.nonzero(nz))] for i,nz in enumerate(~np.any(DOST==0,2))]),np.tile(len(omega), len(input)),labelnames,'Asymtotal',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
     
     #Interacting graphene impurity DOS and Interacting graphene nanoribbon center/edge DOS of Anderson impurity model
     input=tqdm([[{"N" : 200000, "poles" : 4, "U" : 1.5, "Sigma" : 0.75, "Ed" : -1.5/2, "ctype" : 'n', "bound" : 8, "eigsel" : False},
@@ -263,7 +265,7 @@ if __name__=='__main__':
 
     #run TDED with lower offset eta originally 5e-4 now testing for 1e-4
 
-    #add plots total asym and total S
+    #add plots total S
 
     #large graphene sim
 
