@@ -294,7 +294,7 @@ Function with calculated distribution of selected sites based on the results of 
                                                          for j in range(1,bar-2)],[((bomega[i]<selectnon)&(selectnon<=bomega[i+1])).sum() 
                                                                                    for i in range(0,bar-1)]
 
-def DOSplot(fDOS,Lor,omega,name,labels,log=False):
+def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
@@ -304,7 +304,7 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.rc('ytick',labelsize=25)
     axis_font={'fontname':'Calibri','size':'25'}
     plt.xlim(min(omega),max(omega))
-    if not log: plt.gca().set_ylim(bottom=0,top=1.2)
+    if not log: plt.gca().set_ylim(bottom=0,top=ymax)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
