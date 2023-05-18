@@ -323,7 +323,7 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.close()
     return plt
 
-def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False):
+def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2):
     """DOSmultiplot(omega,omegap,DOST,plotp,labels,name).
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
@@ -334,7 +334,7 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.rc('ytick',labelsize=18)
     axis_font={'fontname':'Calibri','size':'18'}
     plt.xlim(min(omega),max(omega))
-    if not log: plt.gca().set_ylim(bottom=0,top=1.2)
+    if not log: plt.gca().set_ylim(bottom=0,top=ymax)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
