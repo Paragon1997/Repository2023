@@ -104,7 +104,7 @@ if __name__=='__main__':
         DOST,labelnames,nd,pbar=np.zeros((len(input),16,1001),dtype = 'float'),np.chararray(16, itemsize=23),np.zeros((16,2),dtype = 'float'),trange(16,position=1,leave=False,desc='Self-consistence iteration',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j in pbar:
             (nd[j], NewSigma, DOST[i,j], Lor, omega, selectpT, selectpcT,tsim),labelnames[j]=DEDlib.main(**input[i],posb=2),'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma']
-            DEDlib.DOSplot(DOST[i,j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],'$\\rho,\\Sigma_0=%.3f$'%input[i]['Sigma'])
+            DEDlib.DOSplot(DOST[i,j], Lor, omega,file+'%.16fSigma'%input[i]['Sigma'],labelnames[j])
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i,j],file+'%.16fSigma'%input[i]['Sigma'],NewSigma)
             if np.isclose(input[i]['Sigma'],np.real(NewSigma[int(np.round(len(NewSigma)/2))]),rtol=6e-4, atol=1e-5): break
             input[i]['Sigma']=np.real(NewSigma[int(np.round(len(NewSigma)/2))])
