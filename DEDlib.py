@@ -303,8 +303,9 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.rc('xtick',labelsize=25)
     plt.rc('ytick',labelsize=25)
     axis_font={'fontname':'Calibri','size':'25'}
-    plt.xlim(min(omega),max(omega))
-    if not log: plt.gca().set_ylim(bottom=0,top=ymax)
+    if not log:
+        plt.gca().set_ylim(bottom=0,top=ymax)
+        plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
@@ -333,8 +334,9 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.rc('xtick',labelsize=18)
     plt.rc('ytick',labelsize=18)
     axis_font={'fontname':'Calibri','size':'18'}
-    plt.xlim(min(omega),max(omega))
-    if not log: plt.gca().set_ylim(bottom=0,top=ymax)
+    if not log:
+        plt.gca().set_ylim(bottom=0,top=ymax)
+        plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
