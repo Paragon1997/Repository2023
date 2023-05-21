@@ -167,7 +167,7 @@ if __name__=='__main__':
         np.savetxt(conname[j]+'Ttotalnd.txt',nd,delimiter='\t',newline='\n')
     pbar.close()
     conlabel,fDOS=['$\it{k_bT= %.0f}$, (constr.)'%0,'$\it{k_bT= %.0f}$, (no constr.)'%0,'$\it{k_bT= %.0f}$, (constr.)'%1,'$\it{k_bT= %.0f}$, (no constr.)'%1],[DOST[0][0],DOST[1][0],DOST[0][5],DOST[1][5]]
-    DEDlib.DOSmultiplot(omega,np.tile(omega,(4,1)),fDOS,np.tile(len(omega),4),conlabel,'constrTtotal',Lor)
+    DEDlib.DOSmultiplot(omega,np.tile(omega,(len(fDOS),1)),fDOS,np.tile(len(omega),len(fDOS)),conlabel,'constrTtotal',Lor)
 
     #Temperature dependence interacting graphene nanoribbon center DOS of Anderson impurity model
     input=tqdm([{"N":20000,"poles":4,"Ed":-3/2,"ctype":'ssn',"bound":8,"eigsel":False,"Tk":[0.000000000001,0.001,0.01,0.1,0.3,1]},
