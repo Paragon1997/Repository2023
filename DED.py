@@ -253,7 +253,7 @@ if __name__=='__main__':
     #Interacting graphene nanoribbon center DOS of Anderson impurity model for various t values
     input=tqdm([{"N":200000,"poles":4,"Ed":-3/2,"ctype":'n',"bound":8,"eigsel":False},
     {"N":200000,"poles":4,"Ed":-3/2,"ctype":'n',"bound":8,"eigsel":True}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    labelnames,t,posimp,selecm=['$\it{t= 0.1}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],[0.25,0.5,1.0,1.5,2.0],[85,74],['','eigval']
+    labelnames,t,posimp,selecm=['$\it{t= 0.25}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],[0.25,0.5,1.0,1.5,2.0],[85,74],['','eigval']
     func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(posimp),len(t),2),dtype='float')
     for l,inp in enumerate(input):
         txtfile,posimp=open('tGrapheneNR'+selecm[l]+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
