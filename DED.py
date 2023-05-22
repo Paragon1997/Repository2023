@@ -260,7 +260,7 @@ if __name__=='__main__':
     for l,inp in enumerate(input):
         txtfile,posimp=open('tGrapheneNR'+selecm[l]+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j,imp in enumerate(posimp):
-            filenames,DOST,nonintrho=tqdm(['cssnt0_1','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((len(t),4001),dtype='float'),np.zeros((len(t),4001),dtype='float')
+            filenames,DOST,nonintrho=tqdm(['cssnt0_25','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((len(t),4001),dtype='float'),np.zeros((len(t),4001),dtype='float')
             for i,file in enumerate(filenames):
                 psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j],t=t[i]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
                 nd[j,i],AvgSigmadat,DOST[i],nonintrho[i],omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
