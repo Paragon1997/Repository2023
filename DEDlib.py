@@ -8,7 +8,6 @@ from qutip import *
 import numpy as np
 import matplotlib.pyplot as plt
 import kwant
-from numpy import sqrt
 import scipy
 from numba import njit
 
@@ -37,9 +36,9 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
     Pbath,Dbath,pbar,G=np.zeros((poles,poles)),np.zeros((poles,poles)),np.zeros((poles,poles)),np.zeros(omega.shape,dtype='complex_')
     for i in range(poles-1):
         for j in range(poles-1):
-            if j>=i: Pbath[i+1][j+1]=-1/sqrt((poles-i-1)*(poles-i))
-        Pbath[i+1][i]=sqrt(poles-i-1)/sqrt(poles-i)
-    Pbath[row,:]=1/sqrt(poles)
+            if j>=i: Pbath[i+1][j+1]=-1/np.sqrt((poles-i-1)*(poles-i))
+        Pbath[i+1][i]=np.sqrt(poles-i-1)/np.sqrt(poles-i)
+    Pbath[row,:]=1/np.sqrt(poles)
     for i, _ in enumerate(select): Dbath[i][i]=select[i]
     pbar[1:,1:]=np.linalg.eig((Pbath@Dbath@Pbath.T)[1:,1:])[1]
     pbar[row][row]=1
@@ -236,13 +235,13 @@ Returns data regarding a defined graphene circular structure such as the corresp
                                     for i,eigv in enumerate(eig)],axis=0)
 
 def GrapheneNRzigzagstruct(W=2.5,L=12,x=-11.835680518387328,dy=0.5,Wo=0,Lo=0,t=1):
-    lat,sys=kwant.lattice.Polyatomic([[sqrt(3)/2,0.5],[0,1]],[[-1/sqrt(12),-0.5],[1/sqrt(12),-0.5]]),kwant.Builder()
+    lat,sys=kwant.lattice.Polyatomic([[np.sqrt(3)/2,0.5],[0,1]],[[-1/np.sqrt(12),-0.5],[1/np.sqrt(12),-0.5]]),kwant.Builder()
     sys[lat.shape(ribbon(W,L),(0,0))],sys[lat.neighbors(1)]=0,-t
     del sys[lat.shape(ribbon(W,dy,x,0),(x,0))],sys[lat.shape(ribbon(Wo,Lo,-x,-W),(-x,-W))],sys[lat.shape(ribbon(Wo,Lo,-x,W),(-x,W))]
     return sys.finalized()
 
 def GrapheneNRarmchairstruct(W=3,L=12,y=-2.8867513459481287,Wo=0,Lo=0,t=1):
-    lat,sys=kwant.lattice.Polyatomic([[1,0],[0.5,sqrt(3)/2]],[[0,1/sqrt(3)],[0,0]]),kwant.Builder()
+    lat,sys=kwant.lattice.Polyatomic([[1,0],[0.5,np.sqrt(3)/2]],[[0,1/np.sqrt(3)],[0,0]]),kwant.Builder()
     sys[lat.shape(ribbon(W,L),(0,0))],sys[lat.neighbors(1)]=0,-t
     del sys[lat.shape(ribbon(Wo,Lo,L,y),(L,y))],sys[lat.shape(ribbon(Wo,Lo,-L,y),(-L,y))]
     return sys.finalized()
