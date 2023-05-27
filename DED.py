@@ -239,7 +239,7 @@ if __name__=='__main__':
     filenames.close()
 
     #Stdev calculator as a function of N
-    filename,labelnames,Nstdev,nstd='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED \it{n=4}$'],np.logspace(2,5,num=50,base=10,dtype='int'),20
+    filename,labelnames,Nstdev,nstd='stdevN4p',['Population $\\rho \it{n=4}$','$\\pm 3\\sigma$','DED $\it{n=4}$'],np.logspace(2,5,num=50,base=10,dtype='int'),20
     Npbar,stdev=tqdm(Nstdev,position=0,leave=False,desc='No. SAIM DED stdev(N) calculations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((len(Nstdev),1001))
     for i,N in enumerate(Npbar):
         pbar,DOST=trange(nstd,position=1,leave=False,desc='No. SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((nstd,1001),dtype='complex_')
