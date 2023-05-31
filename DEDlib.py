@@ -92,8 +92,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype='complex_'),etaoffset
         for k,T in enumerate(Tk):
             if Boltzmann[k]!=0:
-                eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
-                vecn=np.conj(evecs).T
+                eevals,vecn=np.exp(-evals/T-scipy.special.logsumexp(-evals/T)),np.conj(evecs).T
                 exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
                 MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,eevals)
         return MGdat.squeeze(),Boltzmann,evecs[:,0]
