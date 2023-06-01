@@ -26,7 +26,7 @@ if __name__ == '__main__':
     posimp,pbar=[85,74],tqdm(input,position=0,leave=False,desc='No. Multi-orbital Graphene DED scenarios',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(posimp),input.shape[1],2),dtype='float')
     for l,inp in enumerate(pbar):
-        txtfile,posimp=open('GrapheneNRmultiorb2cN4p'+str(l)+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        txtfile,posimp=open('GrapheneNRmultiorb2cN4p'+str(l+1)+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         if input[l][0]["J"]==0: labelnames=['$\it{U,U\'='+str(ip["U"])+',\\epsilon_d='+str(ip["Ed"])+'}$' for ip in inp]
         else: labelnames=['$\it{U='+str(ip["U"])+',J='+str(ip["J"])+',\\epsilon_d='+str(ip["Ed"])+'}$' for ip in inp]
         for j,imp in enumerate(posimp):
