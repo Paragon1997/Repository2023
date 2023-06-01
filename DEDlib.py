@@ -147,20 +147,16 @@ The main DED function simulating the Anderson impurity model for given parameter
     c,pbar=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
     while pbar.n<N:
-        reset,NewMm,nonGm,selectm=False,np.zeros((Nimpurities,Npoles,Npoles)),np.zeros((Nimpurities,SizeO),dtype='complex_'),np.zeros((Nimpurities,Npoles))
+        reset=False
         while not reset:
-            if ctype=='mosn':
-                for i in range(Nimpurities): NewMm[i],nonGm[i],selectm[i]=Startrans(Npoles,np.sort(Lorentzian(omega,Gamma,Npoles,Ed,Sigma)[1]),omega,eta)
-            else: 
-                NewM,nonGm[0],selectm=Startrans(Npoles,np.sort(Lorentzian(omega,Gamma,Npoles,Ed,Sigma)[1]),omega,eta)
-                for i in range(Nimpurities): NewMm[i]=NewM
-            H0,H=HamiltonianAIM(NewMm[:,0,0],[[NewMm[l,k+1,k+1] for k in range(Npoles-1)] for l in range(Nimpurities)],NewMm[:,0,1:],U,Sigma,U2,J,Hn)
+            NewM,nonG,select=Startrans(Npoles,np.sort(Lorentzian(omega,Gamma,Npoles,Ed,Sigma)[1]),omega,eta)
+            H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
             try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]))
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
-            if np.isnan(1/nonGm[0]-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonGm[0]-1/MBGdat+Sigma)]).any(): reset=False
-            selectpT.append(selectm)
-        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonGm[0]-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag()*c[0]+c[1].dag()*c[1]).data.tocoo()@Ev0*Boltzmann
-        selectpcT.append(selectm)
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
+            selectpT.append(select)
+        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag()*c[0]+c[1].dag()*c[1]).data.tocoo()@Ev0*Boltzmann
+        selectpcT.append(select)
         if ctype=='sn': pbar.n+=1
         else: pbar.n=int(min(Nfin))
         pbar.refresh()
