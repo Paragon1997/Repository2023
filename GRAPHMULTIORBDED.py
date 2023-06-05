@@ -34,6 +34,7 @@ if __name__ == '__main__':
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
             for i,file in enumerate(filenames):
                 nd[j,i],AvgSigmadat,DOST[i],nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**{"N":200000,"poles":4,"ctype":'n'}|inp[i],Nimpurities=2,posb=3)
+                if i==2 and l==3: file+='v2'
                 DEDlib.DOSplot(DOST[i],nonintrho,omega,'GrapheneNRmultiorb2cN4p'+structname[j]+file,labelnames[i],log=True)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNRmultiorb2cN4p'+structname[j]+file)
             filenames.close()
