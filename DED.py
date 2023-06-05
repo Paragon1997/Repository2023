@@ -172,10 +172,10 @@ if __name__=='__main__':
     #Temperature dependence interacting graphene nanoribbon center DOS of Anderson impurity model
     input=tqdm([{"N":20000,"poles":4,"Ed":-3/2,"ctype":'ssn',"bound":8,"eigsel":False,"Tk":[0.000000000001,0.001,0.01,0.1,0.3,1]},
            {"N":20000,"poles":4,"Ed":-3/2,"ctype":'ssn',"bound":8,"eigsel":True,"Tk":[0.000000000001,0.001,0.01,0.1,0.3,1]}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    filenames,posimp,labelnames,selecm=['4pT1e-12','4pT1e-3','4pT1e-2','4pT1e-1','4pT3e-1','4pT1'],[85,74],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','eigval']
-    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(posimp),2,len(filenames)),dtype='float')
+    filenames,pim,labelnames,selecm=['4pT1e-12','4pT1e-3','4pT1e-2','4pT1e-1','4pT3e-1','4pT1'],[85,74],['$\it{k_bT= %.3f}$'%0.000,'$\it{k_bT= %.3f}$'%0.001,'$\it{k_bT= %.3f}$'%0.010,'$\it{k_bT= %.3f}$'%0.100,'$\it{k_bT= %.3f}$'%0.300,'$\it{k_bT= %.3f}$'%1.000],['','eigval']
+    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(pim),2,len(filenames)),dtype='float')
     for l,inp in enumerate(input):
-        txtfile,posimp=open('TGrapheneNR'+selecm[l]+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        txtfile,posimp=open('TGrapheneNR'+selecm[l]+'nd.txt','w'),tqdm(pim,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j,imp in enumerate(posimp):
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
             nd[j],AvgSigmadat,DOST,nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=2)
@@ -233,10 +233,10 @@ if __name__=='__main__':
         [{"U":1.5,"Sigma":2.25,"Ed":-2.25,"U2":1.5,"J":0},{"U":3,"Sigma":4.5,"Ed":-4.5,"U2":3,"J":0},{"U":4.5,"Sigma":6.75,"Ed":-6.75,"U2":4.5,"J":0},{"U":6,"Sigma":9,"Ed":-9,"U2":6,"J":0}],
         [{"U":3.5,"Sigma":4.625,"Ed":-4.625,"U2":3,"J":0.25},{"U":3.5,"Sigma":4,"Ed":-4,"U2":2.5,"J":0.5},{"U":3.5,"Sigma":3.375,"Ed":-3.375,"U2":2,"J":0.75},{"U":3.5,"Sigma":2.75,"Ed":-2.75,"U2":1.5,"J":1}],
         [{"U":1.75,"Sigma":2,"Ed":-2,"U2":1.25,"J":0.25},{"U":3.5,"Sigma":4,"Ed":-4,"U2":2.5,"J":0.5},{"U":5.25,"Sigma":6,"Ed":-6,"U2":3.75,"J":0.75},{"U":7,"Sigma":8,"Ed":-8,"U2":5,"J":1}]])
-    posimp,pbar=[85,74],tqdm(input,position=0,leave=False,desc='No. Multi-orbital Graphene DED scenarios',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(posimp),input.shape[1],2),dtype='float')
+    pim,pbar=[85,74],tqdm(input,position=0,leave=False,desc='No. Multi-orbital Graphene DED scenarios',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(pim),input.shape[1],2),dtype='float')
     for l,inp in enumerate(pbar):
-        txtfile,posimp=open('GrapheneNRmultiorb2cN4p'+str(l+1)+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        txtfile,posimp=open('GrapheneNRmultiorb2cN4p'+str(l+1)+'nd.txt','w'),tqdm(pim,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         if input[l][0]["J"]==0: labelnames=['$\it{U,U\'='+str(ip["U"])+',\\epsilon_d='+str(ip["Ed"])+'}$' for ip in inp]
         else: labelnames=['$\it{U='+str(ip["U"])+',J='+str(ip["J"])+',\\epsilon_d='+str(ip["Ed"])+'}$' for ip in inp]
         for j,imp in enumerate(posimp):
@@ -281,10 +281,10 @@ if __name__=='__main__':
     #Interacting graphene nanoribbon center DOS of Anderson impurity model for various t values
     input=tqdm([{"N":200000,"poles":4,"Ed":-3/2,"ctype":'n',"bound":8,"eigsel":False},
     {"N":200000,"poles":4,"Ed":-3/2,"ctype":'n',"bound":8,"eigsel":True}],position=0,leave=False,desc='No. selection type sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    labelnames,t,posimp,selecm=['$\it{t= 0.25}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],[0.25,0.5,1.0,1.5,2.0],[85,74],['','eigval']
-    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(posimp),len(t),2),dtype='float')
+    labelnames,t,pim,selecm=['$\it{t= 0.25}$','$\it{t= 0.5}$','$\it{t= 1.0}$','$\it{t= 1.5}$','$\it{t= 2.0}$'],[0.25,0.5,1.0,1.5,2.0],[85,74],['','eigval']
+    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(pim),len(t),2),dtype='float')
     for l,inp in enumerate(input):
-        txtfile,posimp=open('tGrapheneNR'+selecm[l]+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        txtfile,posimp=open('tGrapheneNR'+selecm[l]+'nd.txt','w'),tqdm(pim,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         for j,imp in enumerate(posimp):
             filenames,DOST,nonintrho=tqdm(['cssnt0_25','cssnt0_5','cssnt1','cssnt1_5','cssnt2'],position=2,leave=False,desc='No. t variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((len(t),4001),dtype='float'),np.zeros((len(t),4001),dtype='float')
             for i,file in enumerate(filenames):

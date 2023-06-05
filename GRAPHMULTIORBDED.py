@@ -23,10 +23,10 @@ if __name__ == '__main__':
         [{"U":1.5,"Sigma":2.25,"Ed":-2.25,"U2":1.5,"J":0},{"U":3,"Sigma":4.5,"Ed":-4.5,"U2":3,"J":0},{"U":4.5,"Sigma":6.75,"Ed":-6.75,"U2":4.5,"J":0},{"U":6,"Sigma":9,"Ed":-9,"U2":6,"J":0}],
         [{"U":3.5,"Sigma":4.625,"Ed":-4.625,"U2":3,"J":0.25},{"U":3.5,"Sigma":4,"Ed":-4,"U2":2.5,"J":0.5},{"U":3.5,"Sigma":3.375,"Ed":-3.375,"U2":2,"J":0.75},{"U":3.5,"Sigma":2.75,"Ed":-2.75,"U2":1.5,"J":1}],
         [{"U":1.75,"Sigma":2,"Ed":-2,"U2":1.25,"J":0.25},{"U":3.5,"Sigma":4,"Ed":-4,"U2":2.5,"J":0.5},{"U":5.25,"Sigma":6,"Ed":-6,"U2":3.75,"J":0.75},{"U":7,"Sigma":8,"Ed":-8,"U2":5,"J":1}]])
-    posimp,pbar=[85,74],tqdm(input,position=0,leave=False,desc='No. Multi-orbital Graphene DED scenarios',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
-    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(posimp),input.shape[1],2),dtype='float')
+    imps,pbar=[85,74],tqdm(input,position=0,leave=False,desc='No. Multi-orbital Graphene DED scenarios',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    func,args,colorbnd,structname,nd=[DEDlib.GrapheneNRarmchairstruct,DEDlib.GrapheneNRzigzagstruct],[(3,12,-2.8867513459481287),(2.5,12,-11.835680518387328,0.5)],[171,147],['armchair','zigzag'],np.zeros((len(imps),input.shape[1],2),dtype='float')
     for l,inp in enumerate(pbar):
-        txtfile,posimp=open('GrapheneNRmultiorb2cN4p'+str(l+1)+'nd.txt','w'),tqdm(posimp,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+        txtfile,posimp=open('GrapheneNRmultiorb2cN4p'+str(l+1)+'nd.txt','w'),tqdm(imps,position=1,leave=False,desc='No. Graphene A/Z NR SAIM DED sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
         if input[l][0]["J"]==0: labelnames=['$\it{U,U\'='+str(ip["U"])+',\\epsilon_d='+str(ip["Ed"])+'}$' for ip in inp]
         else: labelnames=['$\it{U='+str(ip["U"])+',J='+str(ip["J"])+',\\epsilon_d='+str(ip["Ed"])+'}$' for ip in inp]
         for j,imp in enumerate(posimp):
