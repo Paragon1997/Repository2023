@@ -7,8 +7,8 @@ from tqdm.auto import trange
 from qutip import *
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import FuncFormatter
 import kwant
-from numpy import sqrt
 import scipy
 from numba import njit
 
@@ -37,9 +37,9 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
     Pbath,Dbath,pbar,G=np.zeros((poles,poles)),np.zeros((poles,poles)),np.zeros((poles,poles)),np.zeros(omega.shape,dtype='complex_')
     for i in range(poles-1):
         for j in range(poles-1):
-            if j>=i: Pbath[i+1][j+1]=-1/sqrt((poles-i-1)*(poles-i))
-        Pbath[i+1][i]=sqrt(poles-i-1)/sqrt(poles-i)
-    Pbath[row,:]=1/sqrt(poles)
+            if j>=i: Pbath[i+1][j+1]=-1/np.sqrt((poles-i-1)*(poles-i))
+        Pbath[i+1][i]=np.sqrt(poles-i-1)/np.sqrt(poles-i)
+    Pbath[row,:]=1/np.sqrt(poles)
     for i, _ in enumerate(select): Dbath[i][i]=select[i]
     pbar[1:,1:]=np.linalg.eig((Pbath@Dbath@Pbath.T)[1:,1:])[1]
     pbar[row][row]=1
@@ -93,8 +93,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
         MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype='complex_'),etaoffset
         for k,T in enumerate(Tk):
             if Boltzmann[k]!=0:
-                eevals=np.exp(-evals/T-scipy.special.logsumexp(-evals/T))
-                vecn=np.conj(evecs).T
+                eevals,vecn=np.exp(-evals/T-scipy.special.logsumexp(-evals/T)),np.conj(evecs).T
                 exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
                 MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,eevals)
         return MGdat.squeeze(),Boltzmann,evecs[:,0]
@@ -102,14 +101,22 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
 def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
-    if ctype[0]=='s':
+    if ctype[0]=='m':
+        vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data),k=1,which='SA')[1][:,0],
+                                        scipy.sparse.linalg.eigsh(np.real(H.data),k=1,which='SA')[1][:,0])))
+        exp=np.conj(vecs)@n[0].data@vecs.T
+        if ctype=='mosn' and np.round(exp[0,0])==np.round(exp[1,1]):
+            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
+        else:
+            return (np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
+    elif ctype[0]=='s':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0]
         evals,evecs=scipy.linalg.eigh(H.data.toarray())
         if ctype=='ssn':
             Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk)*Nfin.astype('int')
-            return MBGAIM(omega,H,c,eta,Tk,Boltzmann,evals,evecs,1e-4,np.array([-2,-1,0,1,2])),True
+            return MBGAIM(omega,H,c,eta,Tk,Boltzmann,evals,evecs,4e-4,np.array([-2,-1,0,1,2])),True
         else:
-            return MBGAIM(omega,H,c,eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk),evals,evecs,1e-4,np.array([-2,-1,0,1,2])),True
+            return MBGAIM(omega,H,c,eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk),evals,evecs,4e-4,np.array([-2,-1,0,1,2])),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data),k=1,which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data),k=1,which='SA')[1][:,0])))
@@ -134,11 +141,12 @@ Constraint implementation function for DED method with various possible constrai
 def find_nearest(array,value):
     for i in (i for i,arrval in enumerate(array) if np.isclose(arrval,value,atol=0.1)): return i
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    omega,eta,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[],int(poles/Nimpurities)
-    c,pbar=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    if log: omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
+    else: omega,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities)
+    c,pbar,eta=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),etaco[0]*abs(omega)+etaco[1]
     (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
     while pbar.n<N:
         reset=False
@@ -149,7 +157,7 @@ The main DED function simulating the Anderson impurity model for given parameter
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
-        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag()*c[0]+c[1].dag()*c[1]).data.tocoo()@Ev0*Boltzmann
+        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
         if ctype=='sn': pbar.n+=1
         else: pbar.n=int(min(Nfin))
@@ -209,9 +217,11 @@ def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,
     pbar.close()
     return np.abs(S_imp/Nfin).squeeze(),np.real(S_t/Nfin).squeeze(),np.real(S_b/Nfin).squeeze(),Nfin.squeeze(),Tk,(pbar.format_dict["n"],pbar.format_dict["elapsed"])
 
-def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001):
+def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,SizeO=4001,bound=8,etaco=[0.02,1e-24],omegastat=100001,log=False,base=1.5):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
 Returns data regarding a defined graphene circular structure such as the corresponding Green's function."""
+    if log: omega=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=1.5),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base)))
+    else: omega=np.linspace(-bound,bound,SizeO)
     def plotsize(i): return 0.208 if i == imp else 0.125
     def family_color(i):
         if i == imp: return 'purple'
@@ -236,13 +246,13 @@ Returns data regarding a defined graphene circular structure such as the corresp
                                     for i,eigv in enumerate(eig)],axis=0)
 
 def GrapheneNRzigzagstruct(W=2.5,L=12,x=-11.835680518387328,dy=0.5,Wo=0,Lo=0,t=1):
-    lat,sys=kwant.lattice.Polyatomic([[sqrt(3)/2,0.5],[0,1]],[[-1/sqrt(12),-0.5],[1/sqrt(12),-0.5]]),kwant.Builder()
+    lat,sys=kwant.lattice.Polyatomic([[np.sqrt(3)/2,0.5],[0,1]],[[-1/np.sqrt(12),-0.5],[1/np.sqrt(12),-0.5]]),kwant.Builder()
     sys[lat.shape(ribbon(W,L),(0,0))],sys[lat.neighbors(1)]=0,-t
     del sys[lat.shape(ribbon(W,dy,x,0),(x,0))],sys[lat.shape(ribbon(Wo,Lo,-x,-W),(-x,-W))],sys[lat.shape(ribbon(Wo,Lo,-x,W),(-x,W))]
     return sys.finalized()
 
 def GrapheneNRarmchairstruct(W=3,L=12,y=-2.8867513459481287,Wo=0,Lo=0,t=1):
-    lat,sys=kwant.lattice.Polyatomic([[1,0],[0.5,sqrt(3)/2]],[[0,1/sqrt(3)],[0,0]]),kwant.Builder()
+    lat,sys=kwant.lattice.Polyatomic([[1,0],[0.5,np.sqrt(3)/2]],[[0,1/np.sqrt(3)],[0,0]]),kwant.Builder()
     sys[lat.shape(ribbon(W,L),(0,0))],sys[lat.neighbors(1)]=0,-t
     del sys[lat.shape(ribbon(Wo,Lo,L,y),(L,y))],sys[lat.shape(ribbon(Wo,Lo,-L,y),(-L,y))]
     return sys.finalized()
@@ -259,10 +269,11 @@ def Graphenecirclestruct(r=1.5,t=1):
     syst[lat.shape(circle,(0,0))],syst[lat.neighbors()]=0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24],ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24],ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
-    omega,AvgSigmadat,selectpcT,selectpT,Npoles,pbar=np.linspace(-bound,bound,SizeO),np.zeros(SizeO,dtype ='complex_'),[],[],int(poles/Nimpurities),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    if log: omega,selectpcT,selectpT,Npoles,pbar=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
+    else: omega,selectpcT,selectpT,Npoles,pbar=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     c,eta,rhoint=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],etaco[0]*abs(omega)+etaco[1],-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0))/sum(-np.imag(SPrho0)/np.pi*((max(omega)-min(omega))/len(SPrho0)))
     (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='complex_'),np.zeros(len(Tk),dtype='complex_')
     while pbar.n<N:
@@ -275,7 +286,7 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([i>=500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
-        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@(c[0].dag()*c[0]+c[1].dag()*c[1]).data.tocoo()@Ev0*Boltzmann
+        Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
         if ctype=='sn': pbar.n+=1
         else: pbar.n=int(min(Nfin))
@@ -294,7 +305,7 @@ Function with calculated distribution of selected sites based on the results of 
                                                          for j in range(1,bar-2)],[((bomega[i]<selectnon)&(selectnon<=bomega[i+1])).sum() 
                                                                                    for i in range(0,bar-1)]
 
-def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2):
+def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     plt.figure(figsize=(10,8))
@@ -318,14 +329,15 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-    plt.savefig(name+'.png',format='png')
-    plt.savefig(name+'.svg',format='svg',dpi=3600)
+    if save:
+        plt.savefig(name+'.png',format='png')
+        plt.savefig(name+'.svg',format='svg',dpi=3600)
     plt.draw()
     plt.pause(5)
     plt.close()
     return plt
 
-def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2):
+def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2,save=True):
     """DOSmultiplot(omega,omegap,DOST,plotp,labels,name).
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
@@ -350,8 +362,58 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
-    plt.savefig(name+'.png',format='png')
-    plt.savefig(name+'.svg',format='svg',dpi=3600)
+    if save:
+        plt.savefig(name+'.png',format='png')
+        plt.savefig(name+'.svg',format='svg',dpi=3600)
+    plt.draw()
+    plt.pause(5)
+    plt.close()
+    return plt
+
+def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incneg=True):
+    fig=plt.figure(figsize=(10+incneg*10,8))
+    plt.rc('legend',fontsize=17)
+    plt.rc('font',size=18)
+    plt.rc('xtick',labelsize=18)
+    plt.rc('ytick',labelsize=18)
+    axis_font={'fontname':'Calibri','size':'18'}
+    if incneg:
+        ax1=fig.add_subplot(121)
+        ax2=fig.add_subplot(122)
+        ax1.set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font)
+        ax1.set_xscale('log')
+        ax1.invert_xaxis()
+        ax1.set_xticks([1,1e-1,1e-2,1e-3,1e-4,1e-5])
+        ax1.set_xlim(max(omega),xloglim)
+        ax1.set_ylim(0,ymax)
+        ax1.xaxis.set_major_formatter(FuncFormatter(lambda x,pos: '$-\\mathdefault{10^{'+f'{int(np.log10(x))}'+'}}$'))
+        ax1.plot(-omega[:len(omega)//2],Lor[:len(omega)//2],'--r',linewidth=4,label='$\\rho_0$')
+        ax1.plot(-omega[:len(omega)//2],fDOS[:len(omega)//2],'-b',label=labels)
+        ax2.set_xlim(xloglim,max(omega))
+        ax2.set_xscale('log')
+        ax2.set_ylim(0,ymax)
+        ax2.yaxis.set_tick_params(labelleft=False)
+        ax2.plot(omega[len(omega)//2:],Lor[len(omega)//2:],'--r',linewidth=4,label='$\\rho_0$')
+        ax2.plot(omega[len(omega)//2:],fDOS[len(omega)//2:],'-b',label=labels)
+        ax1.grid()
+        ax2.grid()
+        ax1.set_xlabel("$\\omega$ [-]",**axis_font)
+        ax2.set_xlabel("$\\omega$ [-]",**axis_font)
+    else:
+        plt.xscale('log')
+        plt.gca().set_xticks([1,1e-1,1e-2,1e-3,1e-4,1e-5],minor=False)
+        plt.gca().set_xlim(xloglim,max(omega))
+        plt.gca().set_ylim(bottom=0,top=ymax)
+        plt.xlabel("$\\omega$ [-]",**axis_font)
+        plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font)
+        plt.plot(omega[len(omega)//2:],Lor[len(omega)//2:],'--r',linewidth=4,label='$\\rho_0$')
+        plt.plot(omega[len(omega)//2:],fDOS[len(omega)//2:],'-b',label=labels)
+        plt.grid()
+    plt.legend(fancybox=False).get_frame().set_edgecolor('black')
+    plt.tight_layout()
+    if save:
+        plt.savefig(name+'.png',format='png')
+        plt.savefig(name+'.svg',format='svg',dpi=3600)
     plt.draw()
     plt.pause(5)
     plt.close()
@@ -382,7 +444,7 @@ def Entropyplot(Tk,S_imp,labels,name):
     plt.close()
     return plt
 
-def stdplot(Nstdev,stdavg,name,labelname):
+def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
     plt.figure(figsize=(10,8))
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
@@ -392,7 +454,7 @@ def stdplot(Nstdev,stdavg,name,labelname):
     plt.xscale('log')
     plt.xlabel("$N$ [-]",**axis_font)
     plt.gca().set_ylabel("$\\sigma$($N$)",va="bottom",rotation=0,labelpad=30,**axis_font)
-    plt.gca().set_ylim(bottom=0)
+    plt.gca().set_ylim(bottom=0,top=ymax)
     plt.plot(Nstdev,np.mean(stdavg,axis=1),'-',color='black',linewidth=2,label=labelname)
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
