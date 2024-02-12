@@ -466,13 +466,14 @@ def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
     plt.close()
     return plt
     
-def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[]):
+def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[],savpoles=True):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
 File writing function for DED results."""
     if AvgSigmadat==[]: np.savetxt(name+'.txt',np.transpose([omega,fDOS]),fmt='%.18g',delimiter='\t',newline='\n')
     else: np.savetxt(name+'.txt',np.c_[omega,fDOS,np.real(AvgSigmadat),np.imag(AvgSigmadat)],fmt='%.18f\t%.18f\t(%.18g%+.18gj)',delimiter='\t',newline='\n')
-    np.savetxt(name+'polesC'+'.txt',selectpcT,delimiter='\t',newline='\n')
-    np.savetxt(name+'poles'+'.txt',selectpT,delimiter='\t',newline='\n')
+    if savpoles:
+        np.savetxt(name+'polesC'+'.txt',selectpcT,delimiter='\t',newline='\n')
+        np.savetxt(name+'poles'+'.txt',selectpT,delimiter='\t',newline='\n')
 
 def textfileR(name):
     """textfileR(name).
