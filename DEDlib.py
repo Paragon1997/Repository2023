@@ -308,7 +308,7 @@ Function with calculated distribution of selected sites based on the results of 
 def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
-    plt.figure(figsize=(10,8))
+    fig=plt.figure(figsize=(10,8))
     plt.rc('legend',fontsize=17)
     plt.rc('font',size=25)
     plt.rc('xtick',labelsize=25)
@@ -335,13 +335,13 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.draw()
     plt.pause(5)
     plt.close()
-    return plt
+    return fig
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2,save=True):
     """DOSmultiplot(omega,omegap,DOST,plotp,labels,name).
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
-    plt.figure(figsize=(10,8))
+    fig=plt.figure(figsize=(10,8))
     plt.rc('legend',fontsize=18)
     plt.rc('font',size=18)
     plt.rc('xtick',labelsize=18)
@@ -368,7 +368,7 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.draw()
     plt.pause(5)
     plt.close()
-    return plt
+    return fig
 
 def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incneg=True):
     fig=plt.figure(figsize=(10+incneg*10,8))
@@ -417,11 +417,11 @@ def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incne
     plt.draw()
     plt.pause(5)
     plt.close()
-    return plt
+    return fig
 
 def Entropyplot(Tk,S_imp,labels,name):
     colors=['crimson','darkorange','goldenrod','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
-    plt.figure(figsize=(10,8))
+    fig=plt.figure(figsize=(10,8))
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
     plt.rc('ytick',labelsize=15)
@@ -442,10 +442,10 @@ def Entropyplot(Tk,S_imp,labels,name):
     plt.draw()
     plt.pause(5)
     plt.close()
-    return plt
+    return fig
 
 def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
-    plt.figure(figsize=(10,8))
+    fig=plt.figure(figsize=(10,8))
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
     plt.rc('ytick',labelsize=15)
@@ -464,7 +464,7 @@ def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
     plt.draw()
     plt.pause(5)
     plt.close()
-    return plt
+    return fig
     
 def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[],savpoles=True):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
