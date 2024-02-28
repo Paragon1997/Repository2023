@@ -27,7 +27,7 @@ if __name__=='__main__':
         DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),fDOS,file)
     filenames.close()
 
-    # Series of sampled non-interacting DOS for different number of sites compared to the original Lorentzian non-interacting DOS
+    # Series of sampled non-interacting DOS distributions for different number of sites compared to the original Lorentzian non-interacting DOS
     input,Nptodos=[{"N":200000,"poles":2,"U":0,"Sigma":0,"Ed":0,"ctype":'n'},
     {"N":200000,"poles":2,"U":3,"Sigma":1.5,"Ed":-3/2,"ctype":'n'},
     {"N":200000,"poles":3,"U":3,"Sigma":1.5,"Ed":-3/2,"ctype":'n'},
@@ -110,7 +110,7 @@ if __name__=='__main__':
     labelnames=['$\\rho,\\epsilon_d=%.1f$'%1.5,'$\\rho,\\epsilon_d=%.2f$'%1.65,'$\\rho,\\epsilon_d=%.1f$'%1.8,'$\\rho,\\epsilon_d=%.1f$'%2.0,'$\\rho,\\epsilon_d=%.1f$'%2.5,'$\\rho,\\epsilon_d=%.1f$'%3.0]
     DEDlib.DOSmultiplot(omega,np.tile(omega,(len(input),1)),np.array([DOST[i,np.max(np.nonzero(nz))] for i,nz in enumerate(~np.any(DOST==0,2))]),np.tile(len(omega),len(input)),labelnames,'Asymtotal',DEDlib.Lorentzian(omega,0.3,4,-3/2,3/2)[0])
     
-    #Interacting graphene impurity DOS and Interacting graphene nanoribbon center/edge DOS of Anderson impurity model
+    #Interacting graphene nanoribbon center/edge impurity DOS of Anderson impurity model
     input=[{"N":200000,"poles":4,"U":1.5,"Sigma":0.75,"Ed":-1.5/2,"ctype":'n',"bound":8},
             {"N":200000,"poles":4,"U":3.0,"Sigma":1.5,"Ed":-3/2,"ctype":'n',"bound":8},
             {"N":200000,"poles":4,"U":4.5,"Sigma":2.25,"Ed":-4.5/2,"ctype":'n',"bound":8},

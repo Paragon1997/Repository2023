@@ -311,8 +311,8 @@ A plot function to present results from the AIM moddeling for a single results w
     fig=plt.figure(figsize=(10,8))
     plt.rc('legend',fontsize=17)
     plt.rc('font',size=25)
-    plt.rc('xtick',labelsize=25)
-    plt.rc('ytick',labelsize=25)
+    plt.rc('xtick',labelsize=25,color='black')
+    plt.rc('ytick',labelsize=25,color='black')
     axis_font={'fontname':'Calibri','size':'25'}
     plt.xlim(min(omega),max(omega))
     if not log:
@@ -322,8 +322,8 @@ A plot function to present results from the AIM moddeling for a single results w
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
         plt.gca().set_xticks([-8,-6,-4,-2,0,2,4,6,8],minor=False)
-    plt.xlabel("$\\omega$ [-]",**axis_font)
-    plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font)
+    plt.xlabel("$\\omega$ [-]",**axis_font,color='black')
+    plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font,color='black')
     plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
     plt.plot(omega,fDOS,'-b',label=labels)
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')

@@ -8,6 +8,12 @@ from DEDlib import *
 import warnings
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
+from tempfile import TemporaryFile
+import pickle
+
+import json
+from json import JSONEncoder
+
 matplotlib.rc('axes',edgecolor='white')
 
 def counter():#N,Nmax
@@ -27,7 +33,7 @@ def counter():#N,Nmax
         pbar.close()
 
     else:
-        stopped=False
+        #stopped=False
         started=False
         count_var.set(f"{0}/{DEDargs[0]}")
         progressbar.set(0)
@@ -37,11 +43,14 @@ def counter():#N,Nmax
         pbar.reset()
 
 def startDED():
-    global started,paused,number,istar
+    global started,paused,number,istar,pbar,stopped
     istar+=1
     if istar==1:
         if not started: 
             started=True
+            stopped=False
+            #pbar.reset()
+            pbar.start_t = pbar._time()
             #print("start")
         counter()
 
@@ -52,13 +61,94 @@ def pauseDED():
         paused = not paused 
 
 def stopDED():
-    global stopped,started,paused,number,istar
-    if not stopped and started: 
+    global stopped,started,paused,number,istar,omega,dirsav
+    if started or stopped:
+        try:
+            if not dirsav.get().endswith(".json"):
+                dirsav.delete(0,last_index=1000)
+                dirsav.insert(0, 'Try again')
+            else:   
+                AvgSigmajsonfileW(dirsav.get())
+        except IOError:
+            savfilename()
+    if not stopped and started:
         stopped=True
         paused=False
         #print("stop")
         number=0
         istar=0
+
+def fileloader():
+    global started,dir,started,omega,AvgSigmadat,Nfin,count_var,progressbar,Lor,DEDargs,eta,pbar,Npoles,Hn,n,nd,c
+    if not started:
+        try:
+            data=AvgSigmajsonfileR(dir.get())
+            Nfin,omega,AvgSigmadat,nd=np.array(data["Nfin"]),np.array(data["omega"]),np.array(data["AvgSigmadat"]*data["Nfin"]).squeeze(),np.array(data["nd"])
+            DEDargs[1:]=[data["poles"],data["U"],data["Sigma"],data["Ed"],data["Gamma"],data["ctype"],data["Edcalc"],data["Nimpurities"],data["U2"],data["J"],data["Tk"],data["etaco"]]
+            #print(Nfin,omega,AvgSigmadat)
+            count_var.set(f"{pbar.n}/{DEDargs[0]}")
+            progressbar.set(pbar.n/DEDargs[0])
+            Lor=Lorentzian(omega,DEDargs[5],DEDargs[1],DEDargs[4],DEDargs[3])[0]
+            Npoles=int(DEDargs[1]/DEDargs[8])
+            c,eta=[Jordan_wigner_transform(i,2*DEDargs[1]) for i in range(2*DEDargs[1])],DEDargs[12][0]*abs(omega)+DEDargs[12][1]
+            (Hn,n)=Operators(c,DEDargs[8],DEDargs[1])
+            pbar.n=int(min(Nfin))
+            pbar.refresh()
+        except IOError:
+            dir.delete(0,last_index=1000)
+            dir.insert(0, 'Try again')
+            #dir.set('Try again')
+
+def savfilename():
+    global dirsav
+    if not dirsav.get().endswith(".json"):
+        dirsav.delete(0,last_index=1000)
+        dirsav.insert(0, 'Try again')
+        #dirsav.set('Try again')
+
+
+def AvgSigmajsonfileR(name):#dir
+    #text_file=open(dir,"r")
+    #lines=text_file.read().split('\n')
+    #text_file.close()
+    #return np.array([np.array(l,dtype=object).astype(np.complex) for l in [lines[i].split('\t') for i, _ in enumerate(lines[1:])]]).T
+    data=json.load(open(name))
+    data["AvgSigmadat"]=np.array(data["AvgSigmadat"],dtype=object).astype(np.complex128)
+    return data
+
+def AvgSigmajsonfileW(name):
+    global omega,AvgSigmadat,Nfin,DEDargs,nd
+    #np.savetxt(name+'.txt',np.c_[omega,np.real((AvgSigmadat/Nfin[:,None]).squeeze()),np.imag((AvgSigmadat/Nfin[:,None]).squeeze())],fmt='%.18f\t(%.18g%+.18gj)',delimiter='\t',newline='\n')
+
+    #outfile = TemporaryFile()
+    #np.savez(outfile, Nfin=Nfin,omega=omega,AvgSigma=(AvgSigmadat/Nfin[:,None]).squeeze())
+
+    #data={"Nfin": Nfin,"omega": omega,"AvgSigmadatreal":np.real((AvgSigmadat/Nfin[:,None]).squeeze()),"AvgSigmadatimag":np.imag((AvgSigmadat/Nfin[:,None]).squeeze())}
+    
+
+    #poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco
+    
+    data={"poles": DEDargs[1],"U": DEDargs[2],"Sigma": DEDargs[3],"Ed": DEDargs[4],"Gamma": DEDargs[5],"ctype": DEDargs[6],"Edcalc": DEDargs[7],
+    "Nimpurities": DEDargs[8],"U2": DEDargs[9],"J": DEDargs[10],"Tk": DEDargs[11],"etaco": DEDargs[12],
+    "Nfin": Nfin,"omega": omega,"AvgSigmadat":[str(i) for i in (AvgSigmadat/Nfin[:,None]).squeeze()],"nd": np.real(nd/Nfin).squeeze()}
+    jsonObj=json.dumps(data, cls=NumpyArrayEncoder)
+    with open(name, "w") as outfile:
+        outfile.write(jsonObj)
+
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
+
+def valinit():
+    global omega,selectpcT,selectpT,Npoles,c,pbar,eta,Hn,n,AvgSigmadat,Nfin,nd,DEDargs,Lor
+    if log: omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
+    else: omega,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities)
+    c,pbar,eta=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),etaco[0]*abs(omega)+etaco[1]
+    (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
+    Lor=Lorentzian(omega,DEDargs[5],DEDargs[1],DEDargs[4],DEDargs[3])[0]
+    #add stop inputs from changing if file is already loaded
 
 def DOSplottest(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True):
     """DOSplot(fDOS,Lor,omega,name,labels). 
@@ -129,7 +219,7 @@ def showgraph():
     canvas.get_tk_widget().config(bg=bg_string)
 
     canvas.draw()
-    canvas.get_tk_widget().grid(row=6,columnspan=3)#.get_tk_widget()
+    canvas.get_tk_widget().grid(row=8,columnspan=3)#.get_tk_widget()
     app.update()
 
 #global paused,started,stopped
@@ -192,7 +282,7 @@ def showgraph():
 # Run app
 
 def DEDUI():
-    global paused,started,stopped,istar,number,count_var,progressbar,app,DEDargs
+    global paused,started,stopped,istar,number,count_var,progressbar,dir,app,DEDargs,dirsav
     paused=False
     started=False
     stopped=False
@@ -201,8 +291,8 @@ def DEDUI():
     customtkinter.set_appearance_mode("dark")
     customtkinter.set_default_color_theme("blue")
     app=customtkinter.CTk()
-    app.geometry("500x600")
-    app.minsize(300, 200)
+    app.geometry("600x800")
+    app.minsize(400, 200)
 
     #app.resizable(0, 0)
 
@@ -212,43 +302,89 @@ def DEDUI():
     app.after(201, lambda :app.iconbitmap('DEDicon.ico'))
 
     app.title("Distributional Exact Diagonalization AIM simulator")
-    title=customtkinter.CTkLabel(app,text="Choose DED data file directory")
-    title.grid(row=0, column=0,columnspan=3)
-    dir_var=tkinter.StringVar()
-    dir=customtkinter.CTkEntry(app, width=350,height=40,textvariable=dir_var)
-    dir.grid(row=1, column=0,columnspan=3)
+    title=customtkinter.CTkLabel(app,anchor="w",text="Choose DED data file directory to load")#,anchor="w"
+    title.grid(row=0, column=0,columnspan=14,padx=10)
+    dir=customtkinter.CTkEntry(app,width=500,height=40,placeholder_text="C:\\")#,textvariable=dir_var
+    dir.grid(row=1, column=0,columnspan=14,padx=10)
+    loadb=customtkinter.CTkButton(app,text="Submit",width=60,command=fileloader)
+    loadb.grid(row=1, column=14,padx=10,pady=10)
+    title2=customtkinter.CTkLabel(app,anchor="w",text="Choose DED data file save name")
+    title2.grid(row=2, column=0,columnspan=14,padx=10)
+    dirsav=customtkinter.CTkEntry(app, width=500,height=40,placeholder_text="example.json")
+    dirsav.grid(row=3, column=0,columnspan=14,padx=10)
+    saveb=customtkinter.CTkButton(app,text="Submit",width=60,command=savfilename)
+    saveb.grid(row=3, column=14,padx=10,pady=10)
+
+    Ntitle=customtkinter.CTkLabel(app,text="N",width=5)
+    Ntitle.grid(row=4, column=0)
+    Nval=customtkinter.CTkEntry(app, width=80,height=30,placeholder_text="200000")
+    Nval.grid(row=4, column=1,padx=5)
+    polestitle=customtkinter.CTkLabel(app,text="poles")
+    polestitle.grid(row=4, column=3)
+    polesval=customtkinter.CTkEntry(app, width=30,height=30,placeholder_text="2")
+    polesval.grid(row=4, column=4,padx=5)
+    Utitle=customtkinter.CTkLabel(app,text="U")
+    Utitle.grid(row=4, column=5)
+    Uval=customtkinter.CTkEntry(app, width=30,height=30,placeholder_text="3")
+    Uval.grid(row=4, column=6,padx=5)
+    Sigmatitle=customtkinter.CTkLabel(app,text="Sigma")
+    Sigmatitle.grid(row=4, column=7)
+    Sigmaval=customtkinter.CTkEntry(app, width=40,height=30,placeholder_text="1.5")
+    Sigmaval.grid(row=4,column=8,padx=5)
+    Edtitle=customtkinter.CTkLabel(app,text="Ed")
+    Edtitle.grid(row=4, column=9)
+    Edval=customtkinter.CTkEntry(app, width=40,height=30,placeholder_text="-1.5")
+    Edval.grid(row=4,column=10,padx=5)
+    Gammatitle=customtkinter.CTkLabel(app,text="Gamma")
+    Gammatitle.grid(row=4, column=11)
+    Gammaval=customtkinter.CTkEntry(app, width=50,height=30,placeholder_text="0.3")
+    Gammaval.grid(row=4,column=12,padx=5)
+    inputb=customtkinter.CTkButton(app,text="Submit",width=60,command=valinit)
+    inputb.grid(row=3, column=14,padx=10,pady=10)
     progressbar=customtkinter.CTkProgressBar(app)
-    progressbar.grid(row=2, column=0,padx=10,pady=10, columnspan=2, sticky="nsew")
+    progressbar.grid(row=5, column=0,padx=10,pady=10, columnspan=2, sticky="nsew")
     progressbar.set(0)
     count_var=tkinter.StringVar()
     count_var.set(f"{number}/{DEDargs[0]}")
     count_text=customtkinter.CTkLabel(app,textvariable=count_var)
-    count_text.grid(row=2, column=2,padx=10,pady=10, sticky="nsew")
+    count_text.grid(row=5, column=2,padx=10,pady=10, sticky="nsew")
+    return app
+
+    """
+
+    progressbar=customtkinter.CTkProgressBar(app)
+    progressbar.grid(row=5, column=0,padx=10,pady=10, columnspan=2, sticky="nsew")
+    progressbar.set(0)
+    count_var=tkinter.StringVar()
+    count_var.set(f"{number}/{DEDargs[0]}")
+    count_text=customtkinter.CTkLabel(app,textvariable=count_var)
+    count_text.grid(row=5, column=2,padx=10,pady=10, sticky="nsew")
     startb=customtkinter.CTkButton(app,text="Start",command=startDED)
-    startb.grid(row=3, column=0,padx=10,pady=10, sticky="ew")
+    startb.grid(row=6, column=0,padx=10,pady=10, sticky="ew")
     pauseb=customtkinter.CTkButton(app,text="Pause",command=pauseDED)
-    pauseb.grid(row=3, column=1,padx=10,pady=10, sticky="ew")
+    pauseb.grid(row=6, column=1,padx=10,pady=10, sticky="ew")
     stopb=customtkinter.CTkButton(app,text="Stop",command=stopDED)
-    stopb.grid(row=3, column=2,padx=10,pady=10, sticky="ew")
+    stopb.grid(row=6, column=2,padx=10,pady=10, sticky="ew")
     stopb=customtkinter.CTkButton(app,text="Show Results",command=showgraph)
-    stopb.grid(row=5, column=1,padx=10,pady=10, sticky="ew")
+    stopb.grid(row=7, column=1,padx=10,pady=10, sticky="ew")
+
+    frame=customtkinter.CTkFrame(app,width=2.2*app.winfo_width(),height=1.8*app.winfo_height())
+    frame.grid(row=8,columnspan=3)"""
+
+    #dir_var=tkinter.StringVar()
+    #     
     #fig=plt.figure(figsize=(7,5.6))
     #canvas = FigureCanvasTkAgg(fig,master=app)
     #canvas.draw()
     #canvas.get_tk_widget().grid(row=6,columnspan=3)
-    frame=customtkinter.CTkFrame(app,width=2.2*app.winfo_width(),height=1.8*app.winfo_height())
-    frame.grid(row=6,columnspan=3)
-    return app
 
+#nd,_,fDOS,Lor,omega,selectpT,selectpcT,tsim=main(**{"N":200000,"poles":2,"Ed":-3/2,"ctype":'n'})#28 it/s in 3:00
 
 def main(N=200000,poles=2,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5):
-    global omega,selectpcT,selectpT,Npoles,c,pbar,eta,Hn,n,AvgSigmadat,Nfin,nd,DEDargs,Lor
-    DEDargs=[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk]
-    if log: omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
-    else: omega,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities)
-    c,pbar,eta=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),etaco[0]*abs(omega)+etaco[1]
-    (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
-    Lor=Lorentzian(omega,DEDargs[5],DEDargs[1],DEDargs[4],DEDargs[3])[0]
+    global DEDargs
+    #omega,selectpcT,selectpT,Npoles,c,pbar,eta,Hn,n,AvgSigmadat,Nfin,nd,Lor
+    DEDargs=[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+
     DEDUI().mainloop()
 
 
@@ -267,4 +403,4 @@ def iterationDED(reset=False):
     else: pbar.n=int(min(Nfin))
     pbar.refresh()
     #print(pbar.n,Boltzmann,Boltzmann+Nfin)
-main(N=10000)
+main(N=2000000)#27.5 it/s in 3:00
