@@ -45,7 +45,8 @@ def counter():#N,Nmax
         app.progressbar_1.set(pbar.n/DEDargs[0])
     if not stopped and pbar.n!=DEDargs[0]:
         #pbar.refresh()
-        app.after(1,counter)
+        if DEDargs[1]>5: app.after(100,counter)
+        else: app.after(1,counter)
     elif pbar.n==DEDargs[0]:
         pbar.close()
 
