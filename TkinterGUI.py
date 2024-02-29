@@ -198,27 +198,33 @@ def savfilename():
         app.entry_2.insert(0,'Try again')
 
 class ProgressBar(ctk.CTkProgressBar):
-    def __init__(self,itnum,Total, *args, **kwargs):
+    def __init__(self,itnum,Total,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self._canvas.create_text(0,0,text=f"{itnum}/{Total}",fill="white",font=14,anchor="c",tags="progress_text")
 
-    def _update_dimensions_event(self, event):
+    def _update_dimensions_event(self,event):
         super()._update_dimensions_event(event)
         self._canvas.coords("progress_text",event.width/2,event.height/2)
 
-    def set(self, val,itnum,Total, **kwargs):
+    def set(self,val,itnum,Total,**kwargs):
         super().set(val,**kwargs)
         self._canvas.itemconfigure("progress_text",text=f"{number}/{DEDargs[0]}")
+
+def CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0):
+    #return f"{width}x{height}+{int(0.75*(Screen.winfo_screenwidth()-width)-10)}+{int(0.75*(Screen.winfo_screenheight()-height)-46)}"
+    return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-10/1.5)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-46/1.5)*scale_factor)}"
 
 class mainApp(ctk.CTk):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.app_width,self.app_height=300,200
-        self.x,self.y=(screeninfo.get_monitors()[0].width/2)-(self.app_width*0.77),(screeninfo.get_monitors()[0].height/2)-(self.app_height*0.82)
-        self.geometry(f"{self.app_width}x{self.app_height}+{int(self.x)}+{int(self.y)}")
+        #self.x,self.y=(screeninfo.get_monitors()[0].width/2)-(self.app_width*0.77),(screeninfo.get_monitors()[0].height/2)-(self.app_height*0.82)
+        #self.geometry(f"{self.app_width}x{self.app_height}+{int(self.x)}+{int(self.y)}")
+        self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
         #self.eval('tk::PlaceWindow . center')
         self.iconbitmap('DEDicon.ico')
         self.title("DED simulator menu")
+        self.focus()
         self.grid_rowconfigure((0,1,2),weight=0)
         self.grid_columnconfigure(0,weight=1)
         self.menu_label=ctk.CTkLabel(self,text="Choose simulation type",font=ctk.CTkFont(size=20,weight="bold"))
@@ -240,8 +246,9 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.root=selfroot
         self.title("Distributional Exact Diagonalization AIM simulator")
         self.app_width,self.app_height=1100,580
-        self.x,self.y=(screeninfo.get_monitors()[0].width/2)-(self.app_width*0.77),(screeninfo.get_monitors()[0].height/2)-(self.app_height*0.82)
-        self.geometry(f"{self.app_width}x{self.app_height}+{int(self.x)}+{int(self.y)}")
+        #self.x,self.y=(screeninfo.get_monitors()[0].width/2)-(self.app_width*0.77),(screeninfo.get_monitors()[0].height/2)-(self.app_height*0.82)
+        #self.geometry(f"{self.app_width}x{self.app_height}+{int(self.x)}+{int(self.y)}")
+        self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
         self.after(200, lambda: self.iconbitmap('DEDicon.ico'))
         self.resizable(width=False, height=False)
         self.after(100, self.focus)
