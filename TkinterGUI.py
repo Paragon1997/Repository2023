@@ -212,7 +212,7 @@ class ProgressBar(ctk.CTkProgressBar):
 
 def CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0):
     #return f"{width}x{height}+{int(0.75*(Screen.winfo_screenwidth()-width)-10)}+{int(0.75*(Screen.winfo_screenheight()-height)-46)}"
-    return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-10/1.5)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-46/1.5)*scale_factor)}"
+    return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-7)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-31)*scale_factor)}"
 
 class mainApp(ctk.CTk):
     def __init__(self,*args,**kwargs):
