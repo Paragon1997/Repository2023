@@ -97,6 +97,7 @@ class mainApp(ctk.CTk):
 
     def open_toplevel(self,simsel):
         self.toplevel_window=self.top_level_windows[simsel](selfroot=self)
+        self.after(100,self.lower)
         self.scaling_optionemenu.configure(state="disabled")
         self.button_open.configure(state="disabled")
 
@@ -199,6 +200,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         if self.msg.get()=="Yes":
             self.root.scaling_optionemenu.configure(state="normal")
             self.root.button_open.configure(state="normal")
+            self.lift(self.root)
             self.destroy()
 
     def parainit(self):
