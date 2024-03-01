@@ -2,7 +2,7 @@
 ''' DEDlib is a Distributional Exact Diagonalization tooling library for study of Anderson (multi-)impurity model in Graphene Nanoribbons'''
 
 import warnings
-warnings.filterwarnings("ignore", category=RuntimeWarning)
+warnings.filterwarnings("ignore",category=RuntimeWarning)
 from tqdm.auto import trange
 from qutip import *
 import numpy as np

@@ -1,7 +1,5 @@
 import tkinter as tk
 import customtkinter as ctk
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
 from CTkMessagebox import CTkMessagebox
 import numpy as np
 import matplotlib as mpl
@@ -9,196 +7,62 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from DEDlib import *
 import warnings
-warnings.filterwarnings("ignore",category=RuntimeWarning)
-from tempfile import TemporaryFile
 import json
 from json import JSONEncoder
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
+warnings.filterwarnings("ignore",category=RuntimeWarning)
 
-def valinit():
-    global omega,Npoles,c,pbar,eta,Hn,n,AvgSigmadat,Nfin,nd,DEDargs,Lor
-    if DEDargs[16]: omega,Npoles=np.concatenate((-np.logspace(np.log(DEDargs[14])/np.log(DEDargs[17]),np.log(1e-5)/np.log(DEDargs[17]),int(np.round(DEDargs[13]/2)),base=DEDargs[17]),np.logspace(np.log(1e-5)/np.log(DEDargs[17]),np.log(DEDargs[14])/np.log(DEDargs[17]),int(np.round(DEDargs[13]/2)),base=DEDargs[17]))),int(DEDargs[1]/DEDargs[8])
-    else: omega,Npoles=np.linspace(-DEDargs[14],DEDargs[14],DEDargs[13]),int(DEDargs[1]/DEDargs[8])
-    c,pbar,eta=[Jordan_wigner_transform(i,2*DEDargs[1]) for i in range(2*DEDargs[1])],trange(DEDargs[0],position=DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),DEDargs[12][0]*abs(omega)+DEDargs[12][1]
-    (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,DEDargs[8],DEDargs[1]),np.zeros((len(DEDargs[11]),DEDargs[13]),dtype='complex_'),np.zeros(len(DEDargs[11]),dtype='float'),np.zeros(len(DEDargs[11]),dtype='complex_')
-    Lor=Lorentzian(omega,DEDargs[5],DEDargs[1],DEDargs[4],DEDargs[3])[0]
-
-def iterationDED(reset=False):
-    global omega,Npoles,c,pbar,eta,Hn,n,AvgSigmadat,Nfin,nd
-    while not reset:
-        NewM,nonG,_=Startrans(Npoles,np.sort(Lorentzian(omega,DEDargs[5],Npoles,DEDargs[4],DEDargs[3])[1]),omega,eta)
-        H0,H=HamiltonianAIM(np.repeat(NewM[0][0],DEDargs[8]),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(DEDargs[8],1)),np.tile(NewM[0,1:],(DEDargs[8],1)),DEDargs[2],DEDargs[3],DEDargs[9],DEDargs[10],Hn)
-        try: (MBGdat,Boltzmann,Ev0),reset=Constraint(DEDargs[6],H0,H,omega,eta,c,n,DEDargs[11],np.array([ar<DEDargs[0] for ar in Nfin]))
-        except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(DEDargs[11])),np.array([])),False
-        if np.isnan(1/nonG-1/MBGdat+DEDargs[3]).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+DEDargs[3])]).any(): reset=False
-    Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+DEDargs[3])*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
-    if DEDargs[6]=='sn': pbar.n+=1
-    else: pbar.n=int(min(Nfin))
-    pbar.refresh()
-
-def parainit():
-    global DEDargs,app,number,pbar,Npoles,c,Hn,n,Lor
-    if not started:
-        try:
-            if number<int(app.N_Entry.get()):
-                pbar.total=DEDargs[0]=int(app.N_Entry.get())
-                app.N_Entry.configure(state="disabled")
-                pbar.refresh()
-            DEDargs[1:6]=[int(app.scaling_optionemenu.get()),float(app.U_Entry.get()),float(app.Sigma_Entry.get()),float(app.Ed_Entry.get()),float(app.Gamma_Entry.get())]
-            app.progressbar_1.set(number/DEDargs[0])
-            app.U_Entry.configure(state="disabled")
-            app.Sigma_Entry.configure(state="disabled")
-            app.Ed_Entry.configure(state="disabled")
-            app.Gamma_Entry.configure(state="disabled")
-            app.scaling_optionemenu.configure(state="disabled")
-            app.sidebar_button_3.configure(state="disabled")
-            Npoles,c,Lor=int(DEDargs[1]/DEDargs[8]),[Jordan_wigner_transform(i,2*DEDargs[1]) for i in range(2*DEDargs[1])],Lorentzian(omega,DEDargs[5],DEDargs[1],DEDargs[4],DEDargs[3])[0]
-            (Hn,n)=Operators(c,DEDargs[8],DEDargs[1])
-        except: pass
-
-def counter():
-    global paused,stopped,started,DEDargs,pbar,Nfin,number
-    if not paused and pbar.n!=DEDargs[0]:
-        iterationDED()
-        number=pbar.n
-        app.progressbar_1.set(pbar.n/DEDargs[0])
-    if not stopped and pbar.n!=DEDargs[0]: app.after(1,counter)
-    elif pbar.n==DEDargs[0]: pbar.close()
-    else:
-        started,number,pbar.n=False,0,0
-        app.progressbar_1.set(0)
-        pbar.reset()
-
-def startDED():
-    global started,paused,number,istar,pbar,stopped,app
-    istar+=1
-    if istar==1:
-        if not started: 
-            started,stopped,pbar.start_t=True,False,pbar._time()
-            app.N_Entry.configure(state="disabled")
-            app.U_Entry.configure(state="disabled")
-            app.Sigma_Entry.configure(state="disabled")
-            app.Ed_Entry.configure(state="disabled")
-            app.Gamma_Entry.configure(state="disabled")
-            app.scaling_optionemenu.configure(state="disabled")
-            app.sidebar_button_3.configure(state="disabled")
-        counter()
-
-def pauseDED():
-    global paused,started
-    if started: paused=not paused 
+#add ask window main root window
+#fDos if N reached in json
+#other main functions in seperate windows (graphene, S etc.)
 
 class NumpyArrayEncoder(JSONEncoder):
     def default(self,obj):
         if isinstance(obj,np.ndarray): return obj.tolist()
         return JSONEncoder.default(self,obj)
-
-def AvgSigmajsonfileW(name):
-    global omega,AvgSigmadat,Nfin,DEDargs,nd,pbar
-    data={"Ntot":pbar.total,"Nit":pbar.n,"poles":DEDargs[1],"U":DEDargs[2],"Sigma":DEDargs[3],"Ed":DEDargs[4],"Gamma":DEDargs[5],"ctype":DEDargs[6],"Edcalc":DEDargs[7],"Nimpurities":DEDargs[8],"U2":DEDargs[9],"J":DEDargs[10],"Tk":DEDargs[11],"etaco":DEDargs[12],
-    "Nfin": Nfin,"omega": omega,"AvgSigmadat":[str(i) for i in (AvgSigmadat/Nfin[:,None]).squeeze()],"nd": [str(i) for i in (nd/Nfin)]}
-    jsonObj=json.dumps(data,cls=NumpyArrayEncoder)
-    with open(name, "w") as outfile: outfile.write(jsonObj)
-
-def savedata():
-    global app,started,stopped
-    if started or stopped:
-        try:
-            if not app.entry_2.get().endswith(".json"):
-                app.entry_2.delete(0,last_index=tk.END)
-                app.entry_2.insert(0,'Try again')
-            else:   
-                AvgSigmajsonfileW(app.entry_2.get())
-        except IOError:
-            app.entry_2.delete(0,last_index=tk.END)
-            app.entry_2.insert(0,'Try again')
-
-def stopDED():
-    global stopped,started,paused,number,istar,omega,app
-    savedata()
-    if not stopped and started: stopped,paused,number,istar=True,False,0,0
-
-def showgraph():
-    global omega,Lor,AvgSigmadat,Nfin,DEDargs,app
-    mpl.rc('axes',edgecolor='white')
-    fig,axis_font,fDOS=plt.figure(figsize=(7,5.6)),{'fontname':'Calibri','size':'17'},(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-DEDargs[4]+1j*DEDargs[5])))/np.pi).squeeze()
-    plt.rc('legend',fontsize=12)
-    plt.rc('font',size=17)
-    plt.rc('xtick',labelsize=17,color='white')
-    plt.rc('ytick',labelsize=17,color='white')
-    plt.xlim(min(omega),max(omega))
-    plt.gca().set_ylim(bottom=0,top=1.2)
-    plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
-    plt.xlabel("$\\omega$ [-]",**axis_font,color='white')
-    plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font,color='white')
-    plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
-    plt.plot(omega,fDOS,'-b',label='$\\rho,$n='+str(DEDargs[1]))
-    plt.legend(fancybox=False).get_frame().set_edgecolor('black')
-    plt.grid()
-    plt.tight_layout()
-    fig.set_facecolor("none")
-    plt.gca().set_facecolor("#242424")
-    app.plot_frame.configure(fg_color="transparent")
-    canvas=FigureCanvasTkAgg(fig,master=app.plot_frame)
-    canvas.get_tk_widget().config(bg="#242424")
-    canvas.draw()
-    canvas.get_tk_widget().grid(row=1,column=1)
-    app.plot_frame.grid_rowconfigure(0, weight=1)
-    app.plot_frame.grid_rowconfigure(2, weight=1)
-    app.plot_frame.grid_columnconfigure(0, weight=1)
-    app.plot_frame.grid_columnconfigure(2, weight=1)
-    app.plot_frame.update()
-    plt.close()
-
-def fileloader():
-    global app,started,omega,AvgSigmadat,Nfin,Lor,DEDargs,eta,pbar,Npoles,Hn,n,nd,c,number
-    if not started:
-        try:
-            data=AvgSigmajsonfileR(app.entry.get())
-            Nfin,omega,AvgSigmadat,nd=np.array(data["Nfin"]),np.array(data["omega"]),np.array(data["AvgSigmadat"]*data["Nfin"]).squeeze(),np.array(np.array(data["nd"],dtype=np.complex128)*np.array(data["Nfin"],dtype=np.float64),dtype=np.complex128)
-            DEDargs=[data["Ntot"],data["poles"],data["U"],data["Sigma"],data["Ed"],data["Gamma"],data["ctype"],data["Edcalc"],data["Nimpurities"],data["U2"],data["J"],data["Tk"],data["etaco"]]
-            pbar.total,pbar.n=DEDargs[0],data["Nit"]
-            number=pbar.n
-            app.progressbar_1.set(pbar.n/DEDargs[0])
-            Lor,Npoles,c,eta=Lorentzian(omega,DEDargs[5],DEDargs[1],DEDargs[4],DEDargs[3])[0],int(DEDargs[1]/DEDargs[8]),[Jordan_wigner_transform(i,2*DEDargs[1]) for i in range(2*DEDargs[1])],DEDargs[12][0]*abs(omega)+DEDargs[12][1]
-            (Hn,n)=Operators(c,DEDargs[8],DEDargs[1])
-            pbar.refresh()
-            app.U_Entry.delete(0,last_index=tk.END)
-            app.U_Entry.insert(0,str(DEDargs[2]))
-            app.Sigma_Entry.delete(0,last_index=tk.END)
-            app.Sigma_Entry.insert(0,str(DEDargs[3]))
-            app.Ed_Entry.delete(0,last_index=tk.END)
-            app.Ed_Entry.insert(0,str(DEDargs[4]))
-            app.Gamma_Entry.delete(0,last_index=tk.END)
-            app.Gamma_Entry.insert(0,str(DEDargs[5]))
-            app.scaling_optionemenu.set(str(DEDargs[1]))
-            if number>DEDargs[0]: 
-                app.N_Entry.delete(0,last_index=tk.END)
-                app.N_Entry.insert(0,str(number))
-            else:
-                app.N_Entry.delete(0,last_index=tk.END)
-                app.N_Entry.insert(0,str(DEDargs[0]))                
-            app.U_Entry.configure(state="disabled")
-            app.Sigma_Entry.configure(state="disabled")
-            app.Ed_Entry.configure(state="disabled")
-            app.Gamma_Entry.configure(state="disabled")
-            app.scaling_optionemenu.configure(state="disabled")
-        except IOError or FileNotFoundError:
-            app.entry.delete(0,last_index=tk.END)
-            app.entry.insert(0,'Try again')
-
-def AvgSigmajsonfileR(name):#dir
+    
+def AvgSigmajsonfileR(name):
     data=json.load(open(name))
     data["AvgSigmadat"],data["nd"]=np.array(data["AvgSigmadat"],dtype=object).astype(np.complex128),np.array(data["nd"],dtype=object).astype(np.complex128)
     return data
 
-def savfilename():
-    global app
-    if not app.entry_2.get().endswith(".json"):
-        app.entry_2.delete(0,last_index=tk.END)
-        app.entry_2.insert(0,'Try again')
+def AvgSigmajsonfileW(root,name):
+    data={"Ntot":root.pbar.total,"Nit":root.pbar.n,"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],
+    "Nfin":root.Nfin,"omega":root.omega,"AvgSigmadat":[str(i) for i in (root.AvgSigmadat/root.Nfin[:,None]).squeeze()],"nd":[str(i) for i in (root.nd/root.Nfin)]}
+    jsonObj=json.dumps(data,cls=NumpyArrayEncoder)
+    with open(name,"w") as outfile: outfile.write(jsonObj)
+
+def savfilename(entry):
+    if not entry.get().endswith(".json"):
+        entry.delete(0,last_index=tk.END)
+        entry.insert(0,'Try again')
+
+def savedata(root,entry):
+    if root.started or root.stopped:
+        try:
+            if not entry.get().endswith(".json"):
+                entry.delete(0,last_index=tk.END)
+                entry.insert(0,'Try again')
+            else:   
+                AvgSigmajsonfileW(root,entry.get())
+        except IOError:
+            entry.delete(0,last_index=tk.END)
+            entry.insert(0,'Try again')
+
+def savegraph(root,entry):
+    mpl.rc('axes',edgecolor='black')
+    savedata(root,entry)
+    root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
+    if entry.get().endswith(".json"):
+        DOSplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json",""),'$\\rho_{constr.},N,$n='+str(root.DEDargs[1]))
+    else:
+        entry.delete(0,last_index=tk.END)
+        entry.insert(0,'Try again') 
 
 class ProgressBar(ctk.CTkProgressBar):
     def __init__(self,itnum,Total,*args,**kwargs):
+        self.itnum,self.Total=itnum,Total
         super().__init__(*args,**kwargs)
         self._canvas.create_text(0,0,text=f"{itnum}/{Total}",fill="white",font=14,anchor="c",tags="progress_text")
 
@@ -206,22 +70,17 @@ class ProgressBar(ctk.CTkProgressBar):
         super()._update_dimensions_event(event)
         self._canvas.coords("progress_text",event.width/2,event.height/2)
 
-    def set(self,val,itnum,Total,**kwargs):
+    def set(self,val,**kwargs):
         super().set(val,**kwargs)
-        self._canvas.itemconfigure("progress_text",text=f"{number}/{DEDargs[0]}")
+        self._canvas.itemconfigure("progress_text",text=f"{self.itnum}/{self.Total}")
 
-def CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0):
-    #return f"{width}x{height}+{int(0.75*(Screen.winfo_screenwidth()-width)-10)}+{int(0.75*(Screen.winfo_screenheight()-height)-46)}"
-    return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-7)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-31)*scale_factor)}"
+def CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0): return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-7)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-31)*scale_factor)}"
 
 class mainApp(ctk.CTk):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.app_width,self.app_height=300,200
-        #self.x,self.y=(screeninfo.get_monitors()[0].width/2)-(self.app_width*0.77),(screeninfo.get_monitors()[0].height/2)-(self.app_height*0.82)
-        #self.geometry(f"{self.app_width}x{self.app_height}+{int(self.x)}+{int(self.y)}")
         self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
-        #self.eval('tk::PlaceWindow . center')
         self.iconbitmap('DEDicon.ico')
         self.title("DED simulator menu")
         self.focus()
@@ -241,23 +100,245 @@ class mainApp(ctk.CTk):
         self.button_open.configure(state="disabled")
 
 class SAIMWINDOW(ctk.CTkToplevel):
-    def __init__(self,selfroot,*args,**kwargs):
+    def __init__(self,selfroot,N=200000,poles=2,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.root=selfroot
+        self.root,self.paused,self.started,self.stopped,self.DEDargs=selfroot,False,False,False,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+        if self.DEDargs[16]: self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
+        else: self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
+        self.c,self.pbar,self.eta=[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
+        (self.Hn,self.n),self.AvgSigmadat,self.Nfin,self.nd,self.Lor=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),np.zeros((len(self.DEDargs[11]),self.DEDargs[13]),dtype='complex_'),np.zeros(len(self.DEDargs[11]),dtype='float'),np.zeros(len(self.DEDargs[11]),dtype='complex_'),Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
         self.title("Distributional Exact Diagonalization AIM simulator")
         self.app_width,self.app_height=1100,580
-        #self.x,self.y=(screeninfo.get_monitors()[0].width/2)-(self.app_width*0.77),(screeninfo.get_monitors()[0].height/2)-(self.app_height*0.82)
-        #self.geometry(f"{self.app_width}x{self.app_height}+{int(self.x)}+{int(self.y)}")
         self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
-        self.after(200, lambda: self.iconbitmap('DEDicon.ico'))
-        self.resizable(width=False, height=False)
-        self.after(100, self.focus)
-        self.protocol('WM_DELETE_WINDOW', self.enableroot)
+        self.after(200,lambda:self.iconbitmap('DEDicon.ico'))
+        self.resizable(width=False,height=False)
+        self.after(200,self.focus)
+        self.grid_columnconfigure(1,weight=1)
+        self.grid_columnconfigure((2,3),weight=0)
+        self.grid_rowconfigure((0,1,2),weight=1)
+        self.sidebar_frame=ctk.CTkFrame(self,width=140,corner_radius=0)
+        self.sidebar_frame.grid(row=0,column=0,rowspan=5,sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(14,weight=1)
+        self.logo_label=ctk.CTkLabel(self.sidebar_frame,text="AIM Parameters",font=ctk.CTkFont(size=20,weight="bold"))
+        self.logo_label.grid(row=0,column=0,padx=20,pady=(20,10))
+        self.N_label=ctk.CTkLabel(self.sidebar_frame,text="No. of iterations DED:",anchor="w")
+        self.N_label.grid(row=1,column=0,padx=20,pady=(5,0))
+        self.N_Entry=ctk.CTkEntry(self.sidebar_frame,placeholder_text="200000")
+        self.N_Entry.grid(row=2,column=0,padx=20,pady=(5,0))
+        self.U_label=ctk.CTkLabel(self.sidebar_frame,text="Coulomb repulsion U:",anchor="w")
+        self.U_label.grid(row=3,column=0,padx=20,pady=(5,0))
+        self.U_Entry=ctk.CTkEntry(self.sidebar_frame,placeholder_text="3")
+        self.U_Entry.grid(row=4,column=0,padx=20,pady=(5,0))
+        self.Sigma_label=ctk.CTkLabel(self.sidebar_frame,text="Effective one-body potential \u03A3\N{SUBSCRIPT ZERO}:",anchor="w")
+        self.Sigma_label.grid(row=5,column=0,padx=20,pady=(5,0))
+        self.Sigma_Entry=ctk.CTkEntry(self.sidebar_frame,placeholder_text="1.5")
+        self.Sigma_Entry.grid(row=6,column=0,padx=20,pady=(5,0))
+        self.Ed_label=ctk.CTkLabel(self.sidebar_frame,text="Electron impurity energy \u03B5d:",anchor="w")
+        self.Ed_label.grid(row=7,column=0,padx=20,pady=(5,0))
+        self.Ed_Entry=ctk.CTkEntry(self.sidebar_frame,placeholder_text="-1.5")
+        self.Ed_Entry.grid(row=8,column=0,padx=20,pady=(5,0))
+        self.Gamma_label=ctk.CTkLabel(self.sidebar_frame,text="Flat hybridization constant \u0393:",anchor="w")
+        self.Gamma_label.grid(row=9,column=0,padx=20,pady=(5,0))
+        self.Gamma_Entry=ctk.CTkEntry(self.sidebar_frame,placeholder_text="0.3")
+        self.Gamma_Entry.grid(row=10,column=0,padx=20,pady=(5,0))
+        self.scaling_label=ctk.CTkLabel(self.sidebar_frame,text="No. of poles:",anchor="w")
+        self.scaling_label.grid(row=11,column=0,padx=20,pady=(5,0))
+        self.scaling_optionemenu=ctk.CTkOptionMenu(self.sidebar_frame,values=["2","3","4","5","6"])
+        self.scaling_optionemenu.grid(row=12,column=0,padx=20,pady=(5,0))
+        self.sidebar_button_3=ctk.CTkButton(self.sidebar_frame,text="Submit Parameters",command=self.parainit)
+        self.sidebar_button_3.grid(row=13,column=0,padx=20,pady=(40,40))
+        self.N_Entry.insert(0,str(self.DEDargs[0]))
+        self.U_Entry.insert(0,str(self.DEDargs[2]))
+        self.Sigma_Entry.insert(0,str(self.DEDargs[3]))
+        self.Ed_Entry.insert(0,str(self.DEDargs[4]))
+        self.Gamma_Entry.insert(0,str(self.DEDargs[5]))
+        self.scaling_optionemenu.set(str(self.DEDargs[1]))
+        self.entry=ctk.CTkEntry(self,placeholder_text="C:\\")
+        self.entry.grid(row=3,column=1,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
+        self.main_button=ctk.CTkButton(self,text="Submit file to load",fg_color="transparent",border_width=2,text_color=("gray10","#DCE4EE"),command=self.fileloader)
+        self.main_button.grid(row=3,column=3,padx=(20,20),pady=(20,0),sticky="nsew")
+        self.entry_2=ctk.CTkEntry(self,placeholder_text="example.json")
+        self.entry_2.grid(row=4,column=1,columnspan=2,padx=(20,20),pady=10,sticky="nsew")
+        self.main_button_2=ctk.CTkButton(self,text="Submit save location",fg_color="transparent",border_width=2,text_color=("gray10","#DCE4EE"),command=lambda:savfilename(self.entry_2))
+        self.main_button_2.grid(row=4,column=3,padx=(20,20),pady=10,sticky="nsew")
+        self.plot_frame=ctk.CTkFrame(self,width=250,height=374)
+        self.plot_frame.grid(row=0,column=1,columnspan=2,rowspan=1,padx=(20,0),pady=(20,10),sticky="nsew")
+        self.slider_progressbar_frame=ctk.CTkFrame(self)
+        self.slider_progressbar_frame.grid(row=1,column=1,columnspan=2,padx=(20,0),pady=(5,0),sticky="nsew")
+        self.slider_progressbar_frame.grid_columnconfigure((0,1,2,3,4),weight=1)
+        self.progressbar_1=ProgressBar(master=self.slider_progressbar_frame,variable=ctk.IntVar(value=0),itnum=self.pbar.n,Total=self.pbar.total,height=30)
+        self.progressbar_1.grid(row=0,column=0,columnspan=5,padx=20,pady=(5,0),sticky="nsew")
+        self.start_button=ctk.CTkButton(self.slider_progressbar_frame,text="Start",command=self.startDED)
+        self.start_button.grid(row=1,column=0,padx=10,pady=(5,0))
+        self.pause_button=ctk.CTkButton(self.slider_progressbar_frame,text="Pause",command=self.pauseDED)
+        self.pause_button.grid(row=1,column=1,padx=10,pady=(5,0))
+        self.stop_button=ctk.CTkButton(self.slider_progressbar_frame,text="Stop",command=self.stopDED)
+        self.stop_button.grid(row=1,column=2,padx=10,pady=(5,0))
+        self.show_button=ctk.CTkButton(self.slider_progressbar_frame,text="Show Results",command=self.showgraph)
+        self.show_button.grid(row=1,column=3,padx=10,pady=(5,0))
+        self.save_button=ctk.CTkButton(self.slider_progressbar_frame,text="Save Graph",command=lambda:savegraph(self,self.entry_2))
+        self.save_button.grid(row=1,column=4,padx=10,pady=(5,0))
+        self.pause_button.configure(state="disabled")
+        self.stop_button.configure(state="disabled")
+        self.settings_tab=ctk.CTkTabview(self, width=80)
+        self.settings_tab.grid(row=0,column=3,rowspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
+        self.settings_tab.add("CTkTabview")
+        self.settings_tab.add("Tab 2")
+        self.settings_tab.add("Tab 3")
+        self.settings_tab.tab("CTkTabview").grid_columnconfigure(0,weight=1)
+        self.settings_tab.tab("Tab 2").grid_columnconfigure(0,weight=1)
+        self.protocol('WM_DELETE_WINDOW',self.enableroot)
 
     def enableroot(self):
-        self.root.scaling_optionemenu.configure(state="normal")
-        self.root.button_open.configure(state="normal")
-        self.destroy()
+        msg=CTkMessagebox(master=self,title="Exit?",message="Do you want to close the program?",icon="question",option_1="Cancel",option_2="No",option_3="Yes")
+        if msg.get()=="Yes":
+            self.root.scaling_optionemenu.configure(state="normal")
+            self.root.button_open.configure(state="normal")
+            self.destroy()
+
+    def parainit(self):
+        if not self.started:
+            try:
+                if self.pbar.n<int(self.N_Entry.get()):
+                    self.pbar.total=self.DEDargs[0]=int(self.N_Entry.get())
+                    self.N_Entry.configure(state="disabled")
+                    self.start_button.configure(state="normal")
+                    self.pbar.refresh()
+                else:
+                    self.N_Entry.delete(0,last_index=tk.END)
+                    self.N_Entry.insert(0,str(self.pbar.n))
+                self.DEDargs[1:6],self.progressbar_1.Total,self.progressbar_1.itnum=[int(self.scaling_optionemenu.get()),float(self.U_Entry.get()),float(self.Sigma_Entry.get()),float(self.Ed_Entry.get()),float(self.Gamma_Entry.get())],self.DEDargs[0],self.pbar.n
+                self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
+                self.U_Entry.configure(state="disabled")
+                self.Sigma_Entry.configure(state="disabled")
+                self.Ed_Entry.configure(state="disabled")
+                self.Gamma_Entry.configure(state="disabled")
+                self.scaling_optionemenu.configure(state="disabled")
+                self.sidebar_button_3.configure(state="disabled")
+                self.Npoles,self.c,self.Lor=int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+                (self.Hn,self.n)=Operators(self.c,self.DEDargs[8],self.DEDargs[1])
+            except: pass
+
+    def fileloader(self):
+        if not self.started:
+            try:
+                self.data=AvgSigmajsonfileR(self.entry.get())
+                self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
+                self.DEDargs=[self.data["Ntot"],self.data["poles"],self.data["U"],self.data["Sigma"],self.data["Ed"],self.data["Gamma"],self.data["ctype"],self.data["Edcalc"],self.data["Nimpurities"],self.data["U2"],self.data["J"],self.data["Tk"],self.data["etaco"]]
+                self.progressbar_1.Total,self.progressbar_1.itnum=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"]
+                self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
+                self.Lor,self.Npoles,self.c,self.eta=Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0],int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
+                (self.Hn,self.n)=Operators(self.c,self.DEDargs[8],self.DEDargs[1])
+                self.pbar.refresh()
+                self.U_Entry.delete(0,last_index=tk.END)
+                self.U_Entry.insert(0,str(self.DEDargs[2]))
+                self.Sigma_Entry.delete(0,last_index=tk.END)
+                self.Sigma_Entry.insert(0,str(self.DEDargs[3]))
+                self.Ed_Entry.delete(0,last_index=tk.END)
+                self.Ed_Entry.insert(0,str(self.DEDargs[4]))
+                self.Gamma_Entry.delete(0,last_index=tk.END)
+                self.Gamma_Entry.insert(0,str(self.DEDargs[5]))
+                self.scaling_optionemenu.set(str(self.DEDargs[1]))
+                if self.pbar.n>self.DEDargs[0]:
+                    self.N_Entry.delete(0,last_index=tk.END)
+                    self.N_Entry.insert(0,str(self.pbar.n))
+                else:
+                    self.N_Entry.delete(0,last_index=tk.END)
+                    self.N_Entry.insert(0,str(self.DEDargs[0]))   
+                if self.pbar.n==self.DEDargs[0]: self.start_button.configure(state="disabled")             
+                self.U_Entry.configure(state="disabled")
+                self.Sigma_Entry.configure(state="disabled")
+                self.Ed_Entry.configure(state="disabled")
+                self.Gamma_Entry.configure(state="disabled")
+                self.scaling_optionemenu.configure(state="disabled")
+            except IOError or FileNotFoundError:
+                self.entry.delete(0,last_index=tk.END)
+                self.entry.insert(0,'Try again')
+    
+    def startDED(self):
+        self.start_button.configure(state="disabled")
+        self.started,self.stopped,self.pbar.start_t=True,False,self.pbar._time()
+        self.N_Entry.configure(state="disabled")
+        self.U_Entry.configure(state="disabled")
+        self.Sigma_Entry.configure(state="disabled")
+        self.Ed_Entry.configure(state="disabled")
+        self.Gamma_Entry.configure(state="disabled")
+        self.scaling_optionemenu.configure(state="disabled")
+        self.sidebar_button_3.configure(state="disabled")
+        self.loopDED()
+        self.pause_button.configure(state="normal")
+        self.stop_button.configure(state="normal")
+
+    def loopDED(self):
+        if not self.stopped and not self.paused and self.pbar.n!=self.DEDargs[0]:
+            self.iterationDED()
+            self.progressbar_1.itnum=self.pbar.n
+            self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
+        if not self.stopped and self.pbar.n!=self.DEDargs[0]:
+            if self.DEDargs[1]>5:
+                if self.pbar.n%100==0 and self.pbar.total>100:
+                    savedata(self,self.entry_2)
+                    self.showgraph()
+                self.after(100,self.loopDED)
+            else: self.after(1,self.loopDED)
+        elif self.pbar.n==self.DEDargs[0]: 
+            self.pbar.close()
+            self.stopDED()
+            self.showgraph()
+            savegraph(self,self.entry_2)
+
+    def iterationDED(self,reset=False):
+        while not reset:
+            self.NewM,self.nonG,_=Startrans(self.Npoles,np.sort(Lorentzian(self.omega,self.DEDargs[5],self.Npoles,self.DEDargs[4],self.DEDargs[3])[1]),self.omega,self.eta)
+            self.H0,self.H=HamiltonianAIM(np.repeat(self.NewM[0][0],self.DEDargs[8]),np.tile([self.NewM[k+1][k+1] for k in range(len(self.NewM)-1)],(self.DEDargs[8],1)),np.tile(self.NewM[0,1:],(self.DEDargs[8],1)),self.DEDargs[2],self.DEDargs[3],self.DEDargs[9],self.DEDargs[10],self.Hn)
+            try: (self.MBGdat,self.Boltzmann,self.Ev0),reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]))
+            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (self.MBGdat,self.Boltzmann,self.Ev0),reset=(np.zeros(len(self.omega),dtype='complex_'),np.zeros(len(self.DEDargs[11])),np.array([])),False
+            if np.isnan(1/self.nonG-1/self.MBGdat+self.DEDargs[3]).any() or np.array([i>=1000 for i in np.real(1/self.nonG-1/self.MBGdat+self.DEDargs[3])]).any(): reset=False
+        self.Nfin,self.AvgSigmadat,self.nd=self.Nfin+self.Boltzmann,self.AvgSigmadat+(1/self.nonG-1/self.MBGdat+self.DEDargs[3])*self.Boltzmann[:,None],self.nd+np.conj(self.Ev0).T@sum(self.Hn[0]).data.tocoo()@self.Ev0*self.Boltzmann
+        if self.DEDargs[6]=='sn': self.pbar.n+=1
+        else: self.pbar.n=int(min(self.Nfin))
+        self.pbar.refresh()
+
+    def pauseDED(self):
+        if self.started: self.paused=not self.paused
+
+    def stopDED(self):
+        savedata(self,self.entry_2)
+        if not self.stopped and self.started:
+            self.stopped,self.paused,self.started=True,False,False
+            self.pause_button.configure(state="disabled")
+            self.stop_button.configure(state="disabled")
+            if self.pbar.n!=self.DEDargs[0]:
+                self.start_button.configure(state="normal")
+
+    def showgraph(self):
+        mpl.rc('axes',edgecolor='white')
+        self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(7,5.6)),{'fontname':'Calibri','size':'17'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]-self.DEDargs[4]+1j*self.DEDargs[5])))/np.pi).squeeze()
+        plt.rc('legend',fontsize=12)
+        plt.rc('font',size=17)
+        plt.rc('xtick',labelsize=17,color='white')
+        plt.rc('ytick',labelsize=17,color='white')
+        plt.xlim(min(self.omega),max(self.omega))
+        plt.gca().set_ylim(bottom=0,top=1.2)
+        plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),2*int(max(self.omega))+1),minor=False)
+        plt.xlabel("$\\omega$ [-]",**self.axis_font,color='white')
+        plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**self.axis_font,color='white')
+        plt.plot(self.omega,self.Lor,'--r',linewidth=4,label='$\\rho_0$')
+        plt.plot(self.omega,self.fDOS,'-b',label='$\\rho,$n='+str(self.DEDargs[1]))
+        plt.legend(fancybox=False).get_frame().set_edgecolor('black')
+        plt.grid()
+        plt.tight_layout()
+        self.fig.set_facecolor("none")
+        plt.gca().set_facecolor("#242424")
+        self.plot_frame.configure(fg_color="transparent")
+        self.canvas=FigureCanvasTkAgg(self.fig,master=self.plot_frame)
+        self.canvas.get_tk_widget().config(bg="#242424")
+        self.canvas.draw()
+        self.canvas.get_tk_widget().grid(row=1,column=1)
+        self.plot_frame.grid_rowconfigure((0,2),weight=1)
+        self.plot_frame.grid_columnconfigure((0,2),weight=1)
+        self.plot_frame.update()
+        plt.close()
 
 class polesWINDOW(ctk.CTkToplevel):
     pass
@@ -274,4 +355,5 @@ class EntropyWINDOW(ctk.CTkToplevel):
 class StdevWINDOW(ctk.CTkToplevel):
     pass
 
-mainApp().mainloop()
+if __name__ == "__main__":
+    mainApp().mainloop()

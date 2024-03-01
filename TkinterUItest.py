@@ -35,7 +35,7 @@ def iterationDED(reset=False):
     pbar.refresh()
 
 def counter():#N,Nmax
-    global paused,stopped,started,DEDargs,pbar,Nfin,number
+    global paused,stopped,started,DEDargs,pbar,Nfin,number,app
     #print(count_var.get())
     if not paused and pbar.n!=DEDargs[0]:
         iterationDED()
@@ -45,7 +45,9 @@ def counter():#N,Nmax
         app.progressbar_1.set(pbar.n/DEDargs[0])
     if not stopped and pbar.n!=DEDargs[0]:
         #pbar.refresh()
-        if DEDargs[1]>5: app.after(100,counter)
+        if DEDargs[1]>5: 
+            if pbar.n%1000==0 and pbar.total>1000:savedata()
+            app.after(100,counter)
         else: app.after(1,counter)
     elif pbar.n==DEDargs[0]:
         pbar.close()
@@ -63,6 +65,7 @@ def startDED():
     istar+=1
     if istar==1:
         if not started: 
+            app.start_button.configure(state="disabled")
             started=True
             stopped=False
             pbar.start_t = pbar._time()
@@ -236,10 +239,8 @@ def showgraph():
     canvas.get_tk_widget().config(bg=bg_string)
     canvas.draw()
     canvas.get_tk_widget().grid(row=1,column=1)#,sticky="nsew"    .get_tk_widget() row=8,columnspan=3
-    app.plot_frame.grid_rowconfigure(0, weight=1)
-    app.plot_frame.grid_rowconfigure(2, weight=1)
-    app.plot_frame.grid_columnconfigure(0, weight=1)
-    app.plot_frame.grid_columnconfigure(2, weight=1)
+    app.plot_frame.grid_rowconfigure((0,2), weight=1)
+    app.plot_frame.grid_columnconfigure((0,2), weight=1)
     #canvas.get_tk_widget().grid_rowconfigure(0, weight=0)
     #canvas.get_tk_widget().grid_columnconfigure(0, weight=0)
 
@@ -295,7 +296,9 @@ class ProgressBar(customtkinter.CTkProgressBar):
         super().set(val, **kwargs)
         self._canvas.itemconfigure("progress_text", text=f"{number}/{DEDargs[0]}")
 
-
+def CenterWindowToDisplay(Screen:customtkinter.CTk,width:int,height:int,scale_factor:float=1.0):
+    #return f"{width}x{height}+{int(0.75*(Screen.winfo_screenwidth()-width)-10)}+{int(0.75*(Screen.winfo_screenheight()-height)-46)}"
+    return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-7)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-31)*scale_factor)}"
 
 def DEDUI():
     global paused,started,stopped,istar,number,app,DEDargs
@@ -310,14 +313,15 @@ def DEDUI():
     app=customtkinter.CTk()
     app.title("Distributional Exact Diagonalization AIM simulator")
     app_width,app_height=1100,580
+    app.geometry(CenterWindowToDisplay(app,app_width,app_height,app._get_window_scaling()))
     #print(app.winfo_screenwidth(),app.winfo_screenheight(),screeninfo.get_monitors()[0].width,screeninfo.get_monitors()[0].height)
 
     #x,y=(app.winfo_screenwidth()/2)-(app_width/2),(app.winfo_screenheight()/2)-(app_height/2)
-    x,y=(screeninfo.get_monitors()[0].width/2)-(app_width/2),(screeninfo.get_monitors()[0].height/2)-(app_height/2)
+    #x,y=(screeninfo.get_monitors()[0].width/2)-(app_width/2),(screeninfo.get_monitors()[0].height/2)-(app_height/2)
     #app.geometry(f"{app_width}x{app_height}+{int(x)}+{int(y)}")
 
     #app.geometry(f"{1100}x{580}")
-    app.eval('tk::PlaceWindow . center')
+    #app.eval('tk::PlaceWindow . center')
     #app.after(201, lambda :app.iconbitmap('DEDicon.ico'))
     app.iconbitmap('DEDicon.ico')
     app.resizable(width=False, height=False)
@@ -381,8 +385,8 @@ def DEDUI():
 
 
 
-    app.plot_frame=customtkinter.CTkFrame(app,width=250,height=380)
-    app.plot_frame.grid(row=0, column=1, columnspan=2,rowspan=1,padx=(20, 0), pady=(20, 0), sticky="nsew")
+    app.plot_frame=customtkinter.CTkFrame(app,width=250,height=374)
+    app.plot_frame.grid(row=0, column=1, columnspan=2,rowspan=1,padx=(20, 0), pady=(20, 10), sticky="nsew")
 
 
 
