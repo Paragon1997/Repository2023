@@ -14,8 +14,8 @@ ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
 #add ask window main root window
-#fDos if N reached in json
 #other main functions in seperate windows (graphene, S etc.)
+#make exe with pyinstaller
 
 class NumpyArrayEncoder(JSONEncoder):
     def default(self,obj):
@@ -29,7 +29,7 @@ def AvgSigmajsonfileR(name):
 
 def AvgSigmajsonfileW(root,name):
     data={"Ntot":root.pbar.total,"Nit":root.pbar.n,"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],
-    "Nfin":root.Nfin,"omega":root.omega,"AvgSigmadat":[str(i) for i in (root.AvgSigmadat/root.Nfin[:,None]).squeeze()],"nd":[str(i) for i in (root.nd/root.Nfin)]}
+    "Nfin":root.Nfin,"omega":root.omega,"fDOS":(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze(),"AvgSigmadat":[str(i) for i in (root.AvgSigmadat/root.Nfin[:,None]).squeeze()],"nd":[str(i) for i in (root.nd/root.Nfin)]}
     jsonObj=json.dumps(data,cls=NumpyArrayEncoder)
     with open(name,"w") as outfile: outfile.write(jsonObj)
 
@@ -93,11 +93,16 @@ class mainApp(ctk.CTk):
         self.button_open=ctk.CTkButton(self,text="Open",command=lambda:self.open_toplevel(simsel=self.scaling_optionemenu.get()))
         self.button_open.grid(row=2,column=0,padx=20,pady=(20,20))
         self.top_level_windows={"SAIM single sim":SAIMWINDOW,"Sampled poles Distr.":polesWINDOW,"ASAIM single sim":ASAIMWINDOW,"GNR SAIM single sim":GNRWINDOW,"Impurity Entropy":EntropyWINDOW,"Stdev calculator":StdevWINDOW}
+        self.protocol('WM_DELETE_WINDOW',self.quitApp)
 
     def open_toplevel(self,simsel):
         self.toplevel_window=self.top_level_windows[simsel](selfroot=self)
         self.scaling_optionemenu.configure(state="disabled")
         self.button_open.configure(state="disabled")
+
+    def quitApp(self):
+        self.msg=CTkMessagebox(master=self,title="Exit?",message="Are you sure you want to quit the entire application?",icon="question",option_1="Cancel",option_2="No",option_3="Yes")
+        if self.msg.get()=="Yes": self.destroy()
 
 class SAIMWINDOW(ctk.CTkToplevel):
     def __init__(self,selfroot,N=200000,poles=2,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
@@ -190,8 +195,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.protocol('WM_DELETE_WINDOW',self.enableroot)
 
     def enableroot(self):
-        msg=CTkMessagebox(master=self,title="Exit?",message="Do you want to close the program?",icon="question",option_1="Cancel",option_2="No",option_3="Yes")
-        if msg.get()=="Yes":
+        self.msg=CTkMessagebox(master=self,title="Exit?",message="Do you want to close the program? \n Unsaved progress will be lost.",icon="question",option_1="Cancel",option_2="No",option_3="Yes")
+        if self.msg.get()=="Yes":
             self.root.scaling_optionemenu.configure(state="normal")
             self.root.button_open.configure(state="normal")
             self.destroy()
