@@ -107,7 +107,7 @@ class mainApp(ctk.CTk):
         if self.msg.get()=="Yes": self.destroy()
 
 class SAIMWINDOW(ctk.CTkToplevel):
-    def __init__(self,selfroot,N=200000,poles=2,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
+    def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.root,self.paused,self.started,self.stopped,self.DEDargs=selfroot,False,False,False,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
         if self.DEDargs[16]: self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
@@ -190,16 +190,31 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.settings_tab=ctk.CTkTabview(self, width=80)
         self.settings_tab.grid(row=0,column=3,rowspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         self.settings_tab.add("Adv.")
-        self.settings_tab.add("Tab 2")
+        self.settings_tab.add("Multi orb.")
         self.settings_tab.add("Tab 3")
         self.settings_tab.tab("Adv.").grid_columnconfigure(0,weight=1)
-        self.settings_tab.tab("Tab 2").grid_columnconfigure(0,weight=1)
+        self.settings_tab.tab("Multi orb.").grid_columnconfigure(0,weight=1)
         self.tab_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Advanced settings",font=ctk.CTkFont(size=20,weight="bold"))
         self.tab_label.grid(row=0,column=0,padx=20,pady=(20,10))
         self.eta_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Imaginary part of frequency arg. of\nGreen's function \u03B7 ([slope,offset]):",anchor="w")
         self.eta_label.grid(row=1,column=0,padx=20,pady=(5,0))
-        self.eta_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="[0.02,1e-39]")
-        self.eta_Entry.grid(row=2,column=0,padx=20,pady=(5,0))        
+        self.eta_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="[0.02, 1e-39]")
+        self.eta_Entry.grid(row=2,column=0,padx=20,pady=(5,0))
+        self.eta_Entry.insert(0,str(self.DEDargs[12]))
+        self.SizeO_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="No. of energies in spectrum \u03C9:",anchor="w")
+        self.SizeO_label.grid(row=3,column=0,padx=20,pady=(5,0))
+        self.SizeO_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="1001")
+        self.SizeO_Entry.grid(row=4,column=0,padx=20,pady=(5,0))
+        self.SizeO_Entry.insert(0,str(self.DEDargs[13]))
+        self.bound_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Range energies in spectrum \u03C9:",anchor="w")
+        self.bound_label.grid(row=5,column=0,padx=20,pady=(5,0))
+        self.bound_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="3")
+        self.bound_Entry.grid(row=6,column=0,padx=20,pady=(5,0))
+        self.bound_Entry.insert(0,str(self.DEDargs[14]))
+        self.ctype_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Constraint type:",anchor="w")
+        self.ctype_label.grid(row=7,column=0,padx=20,pady=(5,0))
+        self.ctype_optionemenu=ctk.CTkOptionMenu(self.settings_tab.tab("Adv."),values=["n"," ","n%2","sn","ssn","dn","mosn"])
+        self.ctype_optionemenu.grid(row=8,column=0,padx=20,pady=(5,0))
         self.protocol('WM_DELETE_WINDOW',self.enableroot)
 
     def enableroot(self):
