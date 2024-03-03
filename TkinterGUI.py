@@ -14,7 +14,6 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
-#advanced settings
 #add ask window main root window
 #other main functions in seperate windows (graphene, S etc.)
 #make exe with pyinstaller
@@ -46,15 +45,18 @@ def savedata(root,entry):
             if not entry.get().endswith(".json"):
                 entry.delete(0,last_index=tk.END)
                 entry.insert(0,'Try again')
+                return False
             else:   
                 AvgSigmajsonfileW(root,entry.get())
+                return True
         except IOError:
             entry.delete(0,last_index=tk.END)
             entry.insert(0,'Try again')
+            return False
 
 def savegraph(root,entry):
     mpl.rc('axes',edgecolor='black')
-    savedata(root,entry)
+    _=savedata(root,entry)
     root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
     if entry.get().endswith(".json"):
         DOSplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json",""),'$\\rho_{constr.},N,$n='+str(root.DEDargs[1]))
@@ -384,7 +386,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         if not self.stopped and self.pbar.n!=self.DEDargs[0]:
             if self.DEDargs[1]>5:
                 if self.pbar.n%100==0 and self.pbar.total>100:
-                    savedata(self,self.entry_2)
+                    _=savedata(self,self.entry_2)
                     self.showgraph()
                 self.after(100,self.loopDED)
             else: self.after(1,self.loopDED)
@@ -410,8 +412,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         if self.started: self.paused=not self.paused
 
     def stopDED(self):
-        savedata(self,self.entry_2)
-        if not self.stopped and self.started:
+        if savedata(self,self.entry_2) and not self.stopped and self.started:
             self.stopped,self.paused,self.started=True,False,False
             self.pause_button.configure(state="disabled")
             self.stop_button.configure(state="disabled")
