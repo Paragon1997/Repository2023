@@ -18,10 +18,10 @@ def Jordan_wigner_transform(j,lattice_length):
     """Jordan_wigner_transform(j, lattice_length). 
 Defines the Jordan Wigner transformation for a 1D lattice."""
     operators=sigmaz()
-    for _ in range(j-1): operators=tensor(operators,sigmaz())
-    if j == 0: operators=sigmam()
-    else: operators=tensor(operators,sigmam())
-    for _ in range(lattice_length - j - 1): operators=tensor(operators,identity(2))
+    for _ in range(j-1):operators=tensor(operators,sigmaz())
+    if j == 0:operators=sigmam()
+    else:operators=tensor(operators,sigmam())
+    for _ in range(lattice_length - j - 1):operators=tensor(operators,identity(2))
     return operators
 
 @njit
@@ -40,10 +40,10 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
             if j>=i: Pbath[i+1][j+1]=-1/np.sqrt((poles-i-1)*(poles-i))
         Pbath[i+1][i]=np.sqrt(poles-i-1)/np.sqrt(poles-i)
     Pbath[row,:]=1/np.sqrt(poles)
-    for i, _ in enumerate(select): Dbath[i][i]=select[i]
+    for i, _ in enumerate(select):Dbath[i][i]=select[i]
     pbar[1:,1:]=np.linalg.eig((Pbath@Dbath@Pbath.T)[1:,1:])[1]
     pbar[row][row]=1
-    for i, _ in enumerate(select): G+=1/len(select)/(omega-select[i]+1.j*eta)
+    for i, _ in enumerate(select):G+=1/len(select)/(omega-select[i]+1.j*eta)
     return pbar.T@Pbath@Dbath@Pbath.T@pbar,G,select
 
 def Operators(c,Nimpurities,poles):
@@ -84,7 +84,7 @@ def MBGTnonzero(omega,eta,evals,exp,exp2,eevals):
 def MBGAIM(omega,H,c,eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int')):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
-    if ~np.any(evals): evals,evecs=scipy.linalg.eigh(H.data.toarray())
+    if ~np.any(evals):evals,evecs=scipy.linalg.eigh(H.data.toarray())
     if Tk==[0]:
         vecn=np.conj(evecs[:,1:]).T
         exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
@@ -144,8 +144,8 @@ def find_nearest(array,value):
 def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
-    if log: omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
-    else: omega,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities)
+    if log:omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
+    else:omega,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities)
     c,pbar,eta=[Jordan_wigner_transform(i,2*poles) for i in range(2*poles)],trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),etaco[0]*abs(omega)+etaco[1]
     (Hn,n),AvgSigmadat,Nfin,nd=Operators(c,Nimpurities,poles),np.zeros((len(Tk),SizeO),dtype='complex_'),np.zeros(len(Tk),dtype='float'),np.zeros(len(Tk),dtype='complex_')
     while pbar.n<N:
@@ -159,11 +159,11 @@ The main DED function simulating the Anderson impurity model for given parameter
             selectpT.append(select)
         Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
-        if ctype=='sn': pbar.n+=1
+        if ctype=='sn':pbar.n+=1
         else: pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
-    if Edcalc == 'AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
+    if Edcalc=='AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
 def ConstraintS(ctype,H0,H,n,Tk,Nfin=0):
@@ -209,10 +209,10 @@ def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,
         selectpcT.append(select)
         if ~np.any(evals): evals=scipy.linalg.eigvalsh(H.data.toarray())
         Z_tot=scipy.special.logsumexp(np.outer(-evals,1/Tk),axis=0)
-        if (Z_tot>2e+08).any(): continue
-        else: S_t,S_b,S_imp,Nfin=SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin)
+        if (Z_tot>2e+08).any():continue
+        else:S_t,S_b,S_imp,Nfin=SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin)
         if ctype=='sn': pbar.n+=1
-        else: pbar.n=int(min(Nfin))
+        else:pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
     return np.abs(S_imp/Nfin).squeeze(),np.real(S_t/Nfin).squeeze(),np.real(S_b/Nfin).squeeze(),Nfin.squeeze(),Tk,(pbar.format_dict["n"],pbar.format_dict["elapsed"])
@@ -220,8 +220,8 @@ def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,SizeO=4001,bound=8,etaco=[0.02,1e-24],omegastat=100001,log=False,base=1.5):
     """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
 Returns data regarding a defined graphene circular structure such as the corresponding Green's function."""
-    if log: omega=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=1.5),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base)))
-    else: omega=np.linspace(-bound,bound,SizeO)
+    if log:omega=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=1.5),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base)))
+    else:omega=np.linspace(-bound,bound,SizeO)
     def plotsize(i): return 0.208 if i == imp else 0.125
     def family_color(i):
         if i == imp: return 'purple'
@@ -279,20 +279,20 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
     while pbar.n<N:
         reset = False
         while not reset:
-            if eigsel: NewM,nonG,select=Startrans(Npoles,np.sort(np.random.choice(eig,Npoles,p=psi,replace=False)),omega,eta)
-            else: NewM,nonG,select=Startrans(Npoles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),Npoles,p=rhoint,replace=False)),omega,eta)
+            if eigsel:NewM,nonG,select=Startrans(Npoles,np.sort(np.random.choice(eig,Npoles,p=psi,replace=False)),omega,eta)
+            else:NewM,nonG,select=Startrans(Npoles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),Npoles,p=rhoint,replace=False)),omega,eta)
             H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
-            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]))
-            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
+            try:(MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]))
+            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):(MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([i>=500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
         Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
-        if ctype=='sn': pbar.n+=1
-        else: pbar.n=int(min(Nfin))
+        if ctype=='sn':pbar.n+=1
+        else:pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
-    if Edcalc == 'AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
+    if Edcalc=='AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
 def PolestoDOS(select,selectnon,ratio=200,bound=3):
@@ -431,9 +431,9 @@ def Entropyplot(Tk,S_imp,labels,name):
     plt.xlabel("$k_BT$ [-]",**axis_font)
     plt.gca().set_ylabel("$S_{imp}$($k_B$)",va="bottom",rotation=0,labelpad=40,**axis_font)
     plt.gca().set_ylim(bottom=0,top=1.4)
-    if len(S_imp.shape)==1: plt.plot(Tk,S_imp,'-r',linewidth=2,label=labels)
+    if len(S_imp.shape)==1:plt.plot(Tk,S_imp,'-r',linewidth=2,label=labels)
     else:
-        for i,S in enumerate(S_imp): plt.plot(Tk,S,'-',color=colors[i],linewidth=2,label=labels[i])
+        for i,S in enumerate(S_imp):plt.plot(Tk,S,'-',color=colors[i],linewidth=2,label=labels[i])
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
@@ -469,8 +469,8 @@ def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
 def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[],savpoles=True):
     """textfileW(omega,selectpT,selectpcT,fDOS,name).
 File writing function for DED results."""
-    if AvgSigmadat==[]: np.savetxt(name+'.txt',np.transpose([omega,fDOS]),fmt='%.18g',delimiter='\t',newline='\n')
-    else: np.savetxt(name+'.txt',np.c_[omega,fDOS,np.real(AvgSigmadat),np.imag(AvgSigmadat)],fmt='%.18f\t%.18f\t(%.18g%+.18gj)',delimiter='\t',newline='\n')
+    if AvgSigmadat==[]:np.savetxt(name+'.txt',np.transpose([omega,fDOS]),fmt='%.18g',delimiter='\t',newline='\n')
+    else:np.savetxt(name+'.txt',np.c_[omega,fDOS,np.real(AvgSigmadat),np.imag(AvgSigmadat)],fmt='%.18f\t%.18f\t(%.18g%+.18gj)',delimiter='\t',newline='\n')
     if savpoles:
         np.savetxt(name+'polesC'+'.txt',selectpcT,delimiter='\t',newline='\n')
         np.savetxt(name+'poles'+'.txt',selectpT,delimiter='\t',newline='\n')
