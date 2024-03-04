@@ -15,8 +15,6 @@ ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
 #prevent cross sim loading
-#scrollable frame
-
 #add ask window main root window
 #other main functions in seperate windows (graphene, S etc.)
 #make exe with pyinstaller
@@ -34,7 +32,7 @@ def AvgSigmajsonfileR(name):
 def AvgSigmajsonfileW(root,name):
     if root.DEDargs[7]=='AS':root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]+(root.AvgSigmadat[:,int(np.round(root.DEDargs[13]/2))]/root.Nfin)[:,None]+1j*root.DEDargs[5])))/np.pi).squeeze()
     else:root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
-    data={"Ntot":root.pbar.total,"Nit":root.pbar.n,"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
+    data={"Ntot":root.pbar.total,"Nit":root.pbar.n,"telapsed":root.pbar.format_dict["elapsed"],"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
     "Nfin":root.Nfin,"omega":root.omega,"fDOS":root.fDOS,"AvgSigmadat":[str(i) for i in (root.AvgSigmadat/root.Nfin[:,None]).squeeze()],"nd":[str(i) for i in (root.nd/root.Nfin)]}
     jsonObj=json.dumps(data,cls=NumpyArrayEncoder)
     with open(name,"w") as outfile: outfile.write(jsonObj)
@@ -119,7 +117,7 @@ class mainApp(ctk.CTk):
 class SAIMWINDOW(ctk.CTkToplevel):
     def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.root,self.paused,self.started,self.stopped,self.loaded,self.DEDargs=selfroot,False,False,False,False,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+        self.root,self.paused,self.started,self.stopped,self.loaded,self.telapsed,self.DEDargs=selfroot,False,False,False,False,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
         self.c,self.pbar,self.eta=[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
@@ -309,7 +307,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.data=AvgSigmajsonfileR(self.entry.get())
                 self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
                 self.DEDargs=[self.data["Ntot"],self.data["poles"],self.data["U"],self.data["Sigma"],self.data["Ed"],self.data["Gamma"],self.data["ctype"],self.data["Edcalc"],self.data["Nimpurities"],self.data["U2"],self.data["J"],self.data["Tk"],self.data["etaco"],self.data["SizeO"],self.data["bound"],self.data["posb"],self.data["log"],self.data["base"]]
-                self.progressbar_1.Total,self.progressbar_1.itnum=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"]
+                self.progressbar_1.Total,self.progressbar_1.itnum,self.telapsed=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"],self.data["telapsed"]
                 self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
                 self.eta,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
                 (self.Hn,self.n),self.loaded=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),True
@@ -370,7 +368,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
     
     def startDED(self):
         self.start_button.configure(state="disabled")
-        self.started,self.stopped,self.pbar.start_t=True,False,self.pbar._time()
+        self.started,self.stopped,self.pbar.start_t=True,False,self.pbar._time()-self.telapsed
         self.N_Entry.configure(state="disabled")
         self.U_Entry.configure(state="disabled")
         self.Sigma_Entry.configure(state="disabled")
