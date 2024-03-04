@@ -14,6 +14,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
+#add plot tab for coler settings etc. and text legend
 #prevent cross sim loading
 #add ask window main root window
 #other main functions in seperate windows (graphene, S etc.)
@@ -200,7 +201,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.save_button.grid(row=1,column=4,padx=5,pady=(5,10))
         self.pause_button.configure(state="disabled")
         self.stop_button.configure(state="disabled")
-        self.settings_tab=ctk.CTkTabview(self, width=80)
+        self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         self.settings_tab.add("Adv.")
         self.settings_tab.add("Multi orb.")
