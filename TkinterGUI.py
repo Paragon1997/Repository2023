@@ -14,6 +14,9 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
+#prevent cross sim loading
+#scrollable frame
+
 #add ask window main root window
 #other main functions in seperate windows (graphene, S etc.)
 #make exe with pyinstaller
@@ -116,7 +119,7 @@ class mainApp(ctk.CTk):
 class SAIMWINDOW(ctk.CTkToplevel):
     def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.root,self.paused,self.started,self.stopped,self.DEDargs=selfroot,False,False,False,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+        self.root,self.paused,self.started,self.stopped,self.loaded,self.DEDargs=selfroot,False,False,False,False,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
         self.c,self.pbar,self.eta=[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
@@ -205,36 +208,40 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.settings_tab.add("Multi orb.")
         self.settings_tab.tab("Adv.").grid_columnconfigure(0,weight=1)
         self.settings_tab.tab("Multi orb.").grid_columnconfigure(0,weight=1)
-        self.tab_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Advanced settings",font=ctk.CTkFont(size=20,weight="bold"))
-        self.tab_label.grid(row=0,column=0,padx=10,pady=(0,10))
-        self.eta_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Imaginary part of frequency arg. of\nGreen's function \u03B7 ([slope,offset]):",anchor="w")
-        self.eta_label.grid(row=1,column=0,padx=10,pady=(5,0))
-        self.eta_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="[0.02, 1e-39]")
-        self.eta_Entry.grid(row=2,column=0,padx=10,pady=(2,0))
+        self.scrollable_tab=ctk.CTkScrollableFrame(self.settings_tab.tab("Adv."),height=350,width=220,label_text="Advanced settings",label_font=ctk.CTkFont(size=20,weight="bold"),label_fg_color="transparent")
+        self.scrollable_tab.grid(row=0, column=0,rowspan=2, padx=(0, 0), pady=(0, 0))
+        self.eta_label=ctk.CTkLabel(self.scrollable_tab,text="Imaginary part of frequency arg. of\nGreen's function \u03B7 ([slope,offset]):",anchor="w")
+        self.eta_label.grid(row=0,column=0,padx=10,pady=(5,0))
+        self.eta_Entry=ctk.CTkEntry(self.scrollable_tab,placeholder_text="[0.02, 1e-39]")
+        self.eta_Entry.grid(row=1,column=0,padx=10,pady=(2,0))
         self.eta_Entry.insert(0,str(self.DEDargs[12]))
-        self.SizeO_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="No. of energies in spectrum \u03C9:",anchor="w")
-        self.SizeO_label.grid(row=3,column=0,padx=10,pady=(5,0))
-        self.SizeO_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="1001")
-        self.SizeO_Entry.grid(row=4,column=0,padx=10,pady=(0,0))
+        self.SizeO_label=ctk.CTkLabel(self.scrollable_tab,text="No. of energies in spectrum \u03C9:",anchor="w")
+        self.SizeO_label.grid(row=2,column=0,padx=10,pady=(5,0))
+        self.SizeO_Entry=ctk.CTkEntry(self.scrollable_tab,placeholder_text="1001")
+        self.SizeO_Entry.grid(row=3,column=0,padx=10,pady=(0,0))
         self.SizeO_Entry.insert(0,str(self.DEDargs[13]))
-        self.bound_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Range energies in spectrum \u03C9:",anchor="w")
-        self.bound_label.grid(row=5,column=0,padx=10,pady=(5,0))
-        self.bound_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="3")
-        self.bound_Entry.grid(row=6,column=0,padx=10,pady=(0,0))
+        self.bound_label=ctk.CTkLabel(self.scrollable_tab,text="Range energies in spectrum \u03C9:",anchor="w")
+        self.bound_label.grid(row=4,column=0,padx=10,pady=(5,0))
+        self.bound_Entry=ctk.CTkEntry(self.scrollable_tab,placeholder_text="3")
+        self.bound_Entry.grid(row=5,column=0,padx=10,pady=(0,0))
         self.bound_Entry.insert(0,str(self.DEDargs[14]))
-        self.ctype_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Constraint type:",anchor="w")
-        self.ctype_label.grid(row=7,column=0,padx=10,pady=(5,0))
-        self.ctype_optionemenu=ctk.CTkOptionMenu(self.settings_tab.tab("Adv."),values=["n"," ","n%2","sn","ssn","dn","mosn"])
-        self.ctype_optionemenu.grid(row=8,column=0,padx=10,pady=(0,0))
-        self.log_checkbox=ctk.CTkCheckBox(master=self.settings_tab.tab("Adv."),text="Logarithmic scale energies \u03C9")
-        self.log_checkbox.grid(row=9,column=0,padx=10,pady=(10,0))
-        self.base_label=ctk.CTkLabel(self.settings_tab.tab("Adv."),text="Base log. scale:",anchor="w")
-        self.base_label.grid(row=10,column=0,padx=10,pady=(5,0))
-        self.base_Entry=ctk.CTkEntry(self.settings_tab.tab("Adv."),placeholder_text="1.5")
-        self.base_Entry.grid(row=11,column=0,padx=10,pady=(0,0))
+        self.ctype_label=ctk.CTkLabel(self.scrollable_tab,text="Constraint type:",anchor="w")
+        self.ctype_label.grid(row=6,column=0,padx=10,pady=(5,0))
+        self.ctype_optionemenu=ctk.CTkOptionMenu(self.scrollable_tab,values=["n"," ","n%2","sn","ssn","dn","mosn"])
+        self.ctype_optionemenu.grid(row=7,column=0,padx=10,pady=(0,0))
+        self.log_checkbox=ctk.CTkCheckBox(master=self.scrollable_tab,text="Logarithmic scale energies \u03C9")
+        self.log_checkbox.grid(row=8,column=0,padx=10,pady=(10,0))
+        self.base_label=ctk.CTkLabel(self.scrollable_tab,text="Base log. scale:",anchor="w")
+        self.base_label.grid(row=9,column=0,padx=10,pady=(5,0))
+        self.base_Entry=ctk.CTkEntry(self.scrollable_tab,placeholder_text="1.5")
+        self.base_Entry.grid(row=10,column=0,padx=10,pady=(0,0))
         self.base_Entry.insert(0,str(self.DEDargs[17]))
+        self.Edcalc_label=ctk.CTkLabel(self.scrollable_tab,text="\u03B5d in interacting DOS:",anchor="w")
+        self.Edcalc_label.grid(row=11,column=0,padx=10,pady=(5,0))
+        self.Edcalc_optionemenu=ctk.CTkOptionMenu(self.scrollable_tab,values=["","AS"])
+        self.Edcalc_optionemenu.grid(row=12,column=0,padx=10,pady=(0,0))
         self.tab_label2=ctk.CTkLabel(self.settings_tab.tab("Multi orb."),text="Multi orb. settings",font=ctk.CTkFont(size=20,weight="bold"))
-        self.tab_label2.grid(row=0,column=0,padx=10,pady=(0,10))
+        self.tab_label2.grid(row=0,column=0,padx=10,pady=(10,10))
         self.Nimpurities_label=ctk.CTkLabel(self.settings_tab.tab("Multi orb."),text="No. of orbitals:",anchor="w")
         self.Nimpurities_label.grid(row=1,column=0,padx=10,pady=(5,0))
         self.Nimpurities_optionemenu=ctk.CTkOptionMenu(self.settings_tab.tab("Multi orb."),values=["1","2"])
@@ -270,7 +277,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 else:
                     self.N_Entry.delete(0,last_index=tk.END)
                     self.N_Entry.insert(0,str(self.pbar.n))
-                self.DEDargs[1:],self.progressbar_1.Total,self.progressbar_1.itnum=[int(self.scaling_optionemenu.get()),float(self.U_Entry.get()),float(self.Sigma_Entry.get()),float(self.Ed_Entry.get()),float(self.Gamma_Entry.get()),self.ctype_optionemenu.get(),self.DEDargs[7],int(self.Nimpurities_optionemenu.get()),float(self.U2_Entry.get()),float(self.J_Entry.get()),literal_eval(self.Tk_Entry.get()),literal_eval(self.eta_Entry.get()),int(self.SizeO_Entry.get()),float(self.bound_Entry.get()),self.DEDargs[15],bool(self.log_checkbox.get()),float(self.base_Entry.get())],self.DEDargs[0],self.pbar.n
+                self.DEDargs[1:],self.progressbar_1.Total,self.progressbar_1.itnum=[int(self.scaling_optionemenu.get()),float(self.U_Entry.get()),float(self.Sigma_Entry.get()),float(self.Ed_Entry.get()),float(self.Gamma_Entry.get()),self.ctype_optionemenu.get(),self.Edcalc_optionemenu.get(),int(self.Nimpurities_optionemenu.get()),float(self.U2_Entry.get()),float(self.J_Entry.get()),literal_eval(self.Tk_Entry.get()),literal_eval(self.eta_Entry.get()),int(self.SizeO_Entry.get()),float(self.bound_Entry.get()),self.DEDargs[15],bool(self.log_checkbox.get()),float(self.base_Entry.get())],self.DEDargs[0],self.pbar.n
                 self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
                 self.U_Entry.configure(state="disabled")
                 self.Sigma_Entry.configure(state="disabled")
@@ -285,13 +292,15 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.ctype_optionemenu.configure(state="disabled")
                 self.log_checkbox.configure(state="disabled")
                 self.base_Entry.configure(state="disabled")
+                self.Edcalc_optionemenu.configure(state="disabled")
                 self.Nimpurities_optionemenu.configure(state="disabled")
                 self.U2_Entry.configure(state="disabled")
                 self.J_Entry.configure(state="disabled")
-                if self.DEDargs[16]: self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
-                else: self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
-                self.eta,self.AvgSigmadat,self.Nfin,self.nd,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],np.zeros((len(self.DEDargs[11]),self.DEDargs[13]),dtype='complex_'),np.zeros(len(self.DEDargs[11]),dtype='float'),np.zeros(len(self.DEDargs[11]),dtype='complex_'),int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
-                (self.Hn,self.n)=Operators(self.c,self.DEDargs[8],self.DEDargs[1])
+                if not self.loaded:
+                    if self.DEDargs[16]: self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
+                    else: self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
+                    self.eta,self.AvgSigmadat,self.Nfin,self.nd,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],np.zeros((len(self.DEDargs[11]),self.DEDargs[13]),dtype='complex_'),np.zeros(len(self.DEDargs[11]),dtype='float'),np.zeros(len(self.DEDargs[11]),dtype='complex_'),int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+                    (self.Hn,self.n)=Operators(self.c,self.DEDargs[8],self.DEDargs[1])
             except: pass
 
     def fileloader(self):
@@ -303,7 +312,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.progressbar_1.Total,self.progressbar_1.itnum=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"]
                 self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
                 self.eta,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
-                (self.Hn,self.n)=Operators(self.c,self.DEDargs[8],self.DEDargs[1])
+                (self.Hn,self.n),self.loaded=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),True
                 self.pbar.refresh()
                 self.U_Entry.delete(0,last_index=tk.END)
                 self.U_Entry.insert(0,str(self.DEDargs[2]))
@@ -326,6 +335,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.log_checkbox.configure(variable=tk.IntVar(value=int(self.DEDargs[16])))
                 self.base_Entry.delete(0,last_index=tk.END)
                 self.base_Entry.insert(0,str(self.DEDargs[17]))
+                self.Edcalc_optionemenu.set(str(self.DEDargs[7]))
                 self.Nimpurities_optionemenu.set(str(self.DEDargs[8]))
                 self.U2_Entry.delete(0,last_index=tk.END)
                 self.U2_Entry.insert(0,str(self.DEDargs[9]))
@@ -350,6 +360,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.ctype_optionemenu.configure(state="disabled")
                 self.log_checkbox.configure(state="disabled")
                 self.base_Entry.configure(state="disabled")
+                self.Edcalc_optionemenu.configure(state="disabled")
                 self.Nimpurities_optionemenu.configure(state="disabled")
                 self.U2_Entry.configure(state="disabled")
                 self.J_Entry.configure(state="disabled")
@@ -374,6 +385,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.ctype_optionemenu.configure(state="disabled")
         self.log_checkbox.configure(state="disabled")
         self.base_Entry.configure(state="disabled")
+        self.Edcalc_optionemenu.configure(state="disabled")
         self.Nimpurities_optionemenu.configure(state="disabled")
         self.U2_Entry.configure(state="disabled")
         self.J_Entry.configure(state="disabled")
