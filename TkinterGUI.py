@@ -307,10 +307,10 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.data=AvgSigmajsonfileR(self.entry.get())
                 self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
                 self.DEDargs=[self.data["Ntot"],self.data["poles"],self.data["U"],self.data["Sigma"],self.data["Ed"],self.data["Gamma"],self.data["ctype"],self.data["Edcalc"],self.data["Nimpurities"],self.data["U2"],self.data["J"],self.data["Tk"],self.data["etaco"],self.data["SizeO"],self.data["bound"],self.data["posb"],self.data["log"],self.data["base"]]
-                self.progressbar_1.Total,self.progressbar_1.itnum,self.telapsed=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"],self.data["telapsed"]
+                self.progressbar_1.Total,self.progressbar_1.itnum=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"]
                 self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
                 self.eta,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
-                (self.Hn,self.n),self.loaded=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),True
+                (self.Hn,self.n),self.loaded,self.telapsed=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),True,self.data["telapsed"]
                 self.pbar.refresh()
                 self.U_Entry.delete(0,last_index=tk.END)
                 self.U_Entry.insert(0,str(self.DEDargs[2]))
