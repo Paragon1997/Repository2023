@@ -117,7 +117,7 @@ class mainApp(ctk.CTk):
 class SAIMWINDOW(ctk.CTkToplevel):
     def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.root,self.paused,self.started,self.stopped,self.loaded,self.telapsed,self.DEDargs=selfroot,False,False,False,False,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+        self.root,self.paused,self.started,self.stopped,self.loaded,self.poleDOS,self.telapsed,self.DEDargs=selfroot,False,False,False,False,False,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
         self.c,self.pbar,self.eta=[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
@@ -413,7 +413,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         while not reset:
             self.NewM,self.nonG,_=Startrans(self.Npoles,np.sort(Lorentzian(self.omega,self.DEDargs[5],self.Npoles,self.DEDargs[4],self.DEDargs[3])[1]),self.omega,self.eta)
             self.H0,self.H=HamiltonianAIM(np.repeat(self.NewM[0][0],self.DEDargs[8]),np.tile([self.NewM[k+1][k+1] for k in range(len(self.NewM)-1)],(self.DEDargs[8],1)),np.tile(self.NewM[0,1:],(self.DEDargs[8],1)),self.DEDargs[2],self.DEDargs[3],self.DEDargs[9],self.DEDargs[10],self.Hn)
-            try: (self.MBGdat,self.Boltzmann,self.Ev0),reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]))
+            try: (self.MBGdat,self.Boltzmann,self.Ev0),reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]),self.poleDOS)
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (self.MBGdat,self.Boltzmann,self.Ev0),reset=(np.zeros(len(self.omega),dtype='complex_'),np.zeros(len(self.DEDargs[11])),np.array([])),False
             if np.isnan(1/self.nonG-1/self.MBGdat+self.DEDargs[3]).any() or np.array([i>=1000 for i in np.real(1/self.nonG-1/self.MBGdat+self.DEDargs[3])]).any(): reset=False
         self.Nfin,self.AvgSigmadat,self.nd=self.Nfin+self.Boltzmann,self.AvgSigmadat+(1/self.nonG-1/self.MBGdat+self.DEDargs[3])*self.Boltzmann[:,None],self.nd+np.conj(self.Ev0).T@sum(self.Hn[0]).data.tocoo()@self.Ev0*self.Boltzmann
@@ -463,10 +463,33 @@ class SAIMWINDOW(ctk.CTkToplevel):
         plt.close()
 
 class polesWINDOW(ctk.CTkToplevel):
-    def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
+    def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
         super().__init__(*args,**kwargs)
+        self.root,self.paused,self.started,self.stopped,self.loaded,self.poleDOS,self.telapsed,self.DEDargs=selfroot,False,False,False,False,True,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+        if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
+        else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
+        self.selectpcT,self.c,self.pbar,self.eta=[],[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
+        (self.Hn,self.n),self.Lor=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+        self.title("Distributional Exact Diagonalization AIM simulator")
+        self.app_width,self.app_height=1100,580
+        self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
+        self.after(200,lambda:self.iconbitmap('DEDicon.ico'))
+        self.resizable(width=False,height=False)
+        self.after(200,self.focus)
+        self.grid_columnconfigure(1,weight=1)
+        self.grid_columnconfigure((2,3),weight=0)
+        self.grid_rowconfigure((0,1,2),weight=1)
 
-    pass
+    def itpolesDED(self,reset=False):
+        while not reset:
+            self.NewM,self.nonG,self.select=Startrans(self.Npoles,np.sort(Lorentzian(self.omega,self.DEDargs[5],self.Npoles,self.DEDargs[4],self.DEDargs[3])[1]),self.omega,self.eta)
+            self.H0,self.H=HamiltonianAIM(np.repeat(self.NewM[0][0],self.DEDargs[8]),np.tile([self.NewM[k+1][k+1] for k in range(len(self.NewM)-1)],(self.DEDargs[8],1)),np.tile(self.NewM[0,1:],(self.DEDargs[8],1)),self.DEDargs[2],self.DEDargs[3],self.DEDargs[9],self.DEDargs[10],self.Hn)
+            try: _,reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]),self.poleDOS)
+            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): pass
+        self.selectpcT.append(self.select)
+        if self.DEDargs[6]=='sn':self.pbar.n+=1
+        else: self.pbar.n=int(min(self.Nfin))
+        self.pbar.refresh()
 
 class ASAIMWINDOW(ctk.CTkToplevel):
     pass

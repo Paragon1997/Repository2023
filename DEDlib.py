@@ -81,24 +81,26 @@ def MBGTnonzero(omega,eta,evals,exp,exp2,eevals):
             G+=(exp[i][j]*exp2[j][i]/(omega+evi-evj+1.j*eta)+exp[j][i]*exp2[i][j]/(omega+evj-evi+1.j*eta))*eevals[i]
     return G
 
-def MBGAIM(omega,H,c,eta,Tk,Boltzmann,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int')):
+def MBGAIM(omega,H,c,eta,Tk,Boltzmann,poleDOS,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int')):
     """MBGAIM(omega, H, c, eta). 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
-    if ~np.any(evals):evals,evecs=scipy.linalg.eigh(H.data.toarray())
-    if Tk==[0]:
-        vecn=np.conj(evecs[:,1:]).T
-        exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
-        return MBGT0(omega,eta,evals,exp,exp2),Boltzmann,evecs[:,0]
+    if poleDOS: return np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])
     else:
-        MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype='complex_'),etaoffset
-        for k,T in enumerate(Tk):
-            if Boltzmann[k]!=0:
-                eevals,vecn=np.exp(-evals/T-scipy.special.logsumexp(-evals/T)),np.conj(evecs).T
-                exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
-                MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,eevals)
-        return MGdat.squeeze(),Boltzmann,evecs[:,0]
+        if ~np.any(evals):evals,evecs=scipy.linalg.eigh(H.data.toarray())
+        if Tk==[0]:
+            vecn=np.conj(evecs[:,1:]).T
+            exp,exp2=vecn@c[0].data.tocoo()@evecs[:,0],vecn@c[0].dag().data.tocoo()@evecs[:,0]
+            return MBGT0(omega,eta,evals,exp,exp2),Boltzmann,evecs[:,0]
+        else:
+            MGdat,eta[int(np.round(len(eta)/2))+posoffset]=np.ones((len(Tk),len(omega)),dtype='complex_'),etaoffset
+            for k,T in enumerate(Tk):
+                if Boltzmann[k]!=0:
+                    eevals,vecn=np.exp(-evals/T-scipy.special.logsumexp(-evals/T)),np.conj(evecs).T
+                    exp,exp2=vecn@c[0].data.tocoo()@evecs,vecn@c[0].dag().data.tocoo()@evecs
+                    MGdat[k,:]=MBGTnonzero(omega,eta,evals,exp,exp2,eevals)
+            return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
-def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin):
+def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin,poleDOS):
     """Constraint(ctype,H0,H,omega,eta,c,n). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype[0]=='m':
@@ -106,7 +108,7 @@ Constraint implementation function for DED method with various possible constrai
                                         scipy.sparse.linalg.eigsh(np.real(H.data),k=1,which='SA')[1][:,0])))
         exp=np.conj(vecs)@n[0].data@vecs.T
         if ctype=='mosn' and np.round(exp[0,0])==np.round(exp[1,1]):
-            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk)),poleDOS),True
         else:
             return (np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='s':
@@ -114,17 +116,17 @@ Constraint implementation function for DED method with various possible constrai
         evals,evecs=scipy.linalg.eigh(H.data.toarray())
         if ctype=='ssn':
             Boltzmann=np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk)*Nfin.astype('int')
-            return MBGAIM(omega,H,c,eta,Tk,Boltzmann,evals,evecs,4e-4,np.array([-2,-1,0,1,2])),True
+            return MBGAIM(omega,H,c,eta,Tk,Boltzmann,poleDOS,evals,evecs,4e-4,np.array([-2,-1,0,1,2])),True
         else:
-            return MBGAIM(omega,H,c,eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk),evals,evecs,4e-4,np.array([-2,-1,0,1,2])),True
+            return MBGAIM(omega,H,c,eta,Tk,np.exp(-abs(evals[find_nearest(np.diag(np.conj(evecs).T@n[0].data@evecs),np.conj(vecs)@n[0].data@vecs.T)]-evals[0])/Tk),poleDOS,evals,evecs,4e-4,np.array([-2,-1,0,1,2])),True
     elif ctype[0]=='n':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data),k=1,which='SA')[1][:,0],
                                                 scipy.sparse.linalg.eigsh(np.real(H.data),k=1,which='SA')[1][:,0])))
         exp=[np.conj(vecs)@ni.data@vecs.T for ni in n]
         if ctype=='n%2' and all([int(np.round(expi[0,0]))%2==int(np.round(expi[1,1]))%2 for expi in exp]):
-            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk)),poleDOS),True
         elif ctype=='n' and all([np.round(expi[0,0])==np.round(expi[1,1]) for expi in exp]):
-            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk)),poleDOS),True
         else:
             return (np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
     elif ctype[0]=='d':
@@ -132,16 +134,16 @@ Constraint implementation function for DED method with various possible constrai
                                                 scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0])))
         exp=[np.conj(vecs)@ni.data@vecs.T for ni in n]
         if ctype=='dn' and all([np.round(expi[0,0])==np.round(expi[1,1]) for expi in exp]):
-            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
+            return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk)),poleDOS),True
         else:
             return (np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
     else:
-        return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk))),True
+        return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk)),poleDOS),True
     
 def find_nearest(array,value):
     for i in (i for i,arrval in enumerate(array) if np.isclose(arrval,value,atol=0.1)): return i
 
-def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5):
+def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,poleDOS=False):
     """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     if log:omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
@@ -153,7 +155,7 @@ The main DED function simulating the Anderson impurity model for given parameter
         while not reset:
             NewM,nonG,select=Startrans(Npoles,np.sort(Lorentzian(omega,Gamma,Npoles,Ed,Sigma)[1]),omega,eta)
             H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
-            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]))
+            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]),poleDOS)
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
@@ -269,7 +271,7 @@ def Graphenecirclestruct(r=1.5,t=1):
     syst[lat.shape(circle,(0,0))],syst[lat.neighbors()]=0,-t
     return syst.finalized()
 
-def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24],ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5):
+def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24],ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,poleDOS=False):
     """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
     if log: omega,selectpcT,selectpT,Npoles,pbar=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
@@ -282,7 +284,7 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
             if eigsel:NewM,nonG,select=Startrans(Npoles,np.sort(np.random.choice(eig,Npoles,p=psi,replace=False)),omega,eta)
             else:NewM,nonG,select=Startrans(Npoles,np.sort(np.random.choice(np.linspace(-bound,bound,len(rhoint)),Npoles,p=rhoint,replace=False)),omega,eta)
             H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
-            try:(MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]))
+            try:(MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]),poleDOS)
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):(MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
             if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([i>=500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
             selectpT.append(select)
