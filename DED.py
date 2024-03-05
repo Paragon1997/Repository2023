@@ -125,10 +125,10 @@ if __name__=='__main__':
                 if j==1 or l==1: input[i]['Edcalc']='AS'
                 else: input[i]['Edcalc']=''
                 nd[j,i],AvgSigmadat,DOST[i],nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**input[i],eigsel=sel,posb=3)
-                DEDlib.DOSplot(DOST[i],nonintrho,omega,file+selecm[l],labelnames[i],log=True)
+                DEDlib.DOSplot(DOST[i],nonintrho,omega,file+selecm[l],labelnames[i],log=True,ymax=10)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
             filenames.close()
-            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneCirc'+str(r)+'r'+selecm[l],nonintrho,log=True)
+            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneCirc'+str(r)+'r'+selecm[l],nonintrho,log=True,ymax=10)
             np.savetxt(txtfile,nd[j],delimiter='\t',newline='\n')
             txtfile.write('\n')
         radius.close()
@@ -141,10 +141,10 @@ if __name__=='__main__':
                 psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[k](*args[k]),colorbnd[k],'GrapheneNR'+structname[k]+str(imp)+'pos')
                 for i,file in enumerate(filenames):
                     nd[j,i],AvgSigmadat,DOST[i],nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**input[i],eigsel=sel,posb=4)
-                    DEDlib.DOSplot(DOST[i],nonintrho,omega,file+selecm[l],labelnames[i],log=True)
+                    DEDlib.DOSplot(DOST[i],nonintrho,omega,file+selecm[l],labelnames[i],log=True,ymax=10)
                     DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
                 filenames.close()
-                DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNR'+structname[k]+str(imp)+'pos'+selecm[l],nonintrho,log=True)
+                DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNR'+structname[k]+str(imp)+'pos'+selecm[l],nonintrho,log=True,ymax=10)
                 np.savetxt(txtfile,nd[j],delimiter='\t',newline='\n')
                 txtfile.write('\n')
             posb.close()
@@ -180,9 +180,9 @@ if __name__=='__main__':
             psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
             nd[j],AvgSigmadat,DOST,nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=2)
             for i,file in enumerate(filenames):
-                DEDlib.DOSplot(DOST[i],nonintrho,omega,'GrapheneNR'+structname[j]+file+selecm[l],labelnames[i],log=True)
+                DEDlib.DOSplot(DOST[i],nonintrho,omega,'GrapheneNR'+structname[j]+file+selecm[l],labelnames[i],log=True,ymax=10)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+structname[j]+file+selecm[l])
-            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(inp["Tk"]),1)),DOST,np.tile(len(omega),len(inp["Tk"])),labelnames,'GTtotal'+structname[j]+selecm[l],nonintrho,log=True)
+            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(inp["Tk"]),1)),DOST,np.tile(len(omega),len(inp["Tk"])),labelnames,'GTtotal'+structname[j]+selecm[l],nonintrho,log=True,ymax=10)
             np.savetxt(txtfile,nd[j],delimiter='\t',newline='\n')
             txtfile.write('\n')    
         posimp.close()
@@ -245,10 +245,10 @@ if __name__=='__main__':
             for i,file in enumerate(filenames):
                 nd[j,i],AvgSigmadat,DOST[i],nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**{"N":200000,"poles":4,"ctype":'n'}|inp[i],Nimpurities=2,posb=3)
                 if i==2 and l==3: file+='v2'
-                DEDlib.DOSplot(DOST[i],nonintrho,omega,'GrapheneNRmultiorb2cN4p'+structname[j]+file,labelnames[i],log=True)
+                DEDlib.DOSplot(DOST[i],nonintrho,omega,'GrapheneNRmultiorb2cN4p'+structname[j]+file,labelnames[i],log=True,ymax=10)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNRmultiorb2cN4p'+structname[j]+file)
             filenames.close()
-            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNRmultiorb2CN'+structname[j]+str(l+1),nonintrho,log=True)
+            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNRmultiorb2CN'+structname[j]+str(l+1),nonintrho,log=True,ymax=10)
             np.savetxt(txtfile,nd[j],delimiter='\t',newline='\n')
             txtfile.write('\n')
         posimp.close()
@@ -291,10 +291,10 @@ if __name__=='__main__':
             for i,file in enumerate(filenames):
                 psi,SPG,eig,SPrho0=DEDlib.GrapheneAnalyzer(imp,func[j](*args[j],t=t[i]),colorbnd[j],'GrapheneNR'+structname[j]+str(imp)+'pos')
                 nd[j,i],AvgSigmadat,DOST[i],nonintrho[i],omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**inp,posb=3)
-                DEDlib.DOSplot(DOST[i],nonintrho[i],omega,'GrapheneNR'+structname[j]+file+selecm[l],labelnames[i],log=True)
+                DEDlib.DOSplot(DOST[i],nonintrho[i],omega,'GrapheneNR'+structname[j]+file+selecm[l],labelnames[i],log=True,ymax=10)
                 DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],'GrapheneNR'+structname[j]+file+selecm[l])
             filenames.close()
-            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNRt'+structname[j]+str(imp)+'pos'+selecm[l],nonintrho[int(np.round(len(nonintrho)/2))],log=True)
+            DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNRt'+structname[j]+str(imp)+'pos'+selecm[l],nonintrho[int(np.round(len(nonintrho)/2))],log=True,ymax=10)
             np.savetxt(txtfile,nd[j],delimiter='\t',newline='\n')
             txtfile.write('\n')
         posimp.close()
@@ -312,10 +312,10 @@ if __name__=='__main__':
         filenames,DOST,nd=tqdm(['GrapheneNR'+structname+'1_5U','GrapheneNR'+structname+'3U','GrapheneNR'+structname+'4_5U','GrapheneNR'+structname+'6U'],position=1,leave=False,desc='No. U variation sims',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),np.zeros((len(input),4001),dtype='float'),np.zeros((len(input),2),dtype='float')
         for i,file in enumerate(filenames):
             nd[i],AvgSigmadat,DOST[i],nonintrho,omega,selectpT,selectpcT,tsim=DEDlib.Graphene_main(psi,SPG,eig,SPrho0,**input[i],eigsel=sel,posb=2)
-            DEDlib.DOSplot(DOST[i],nonintrho,omega,file+selecm[l],labelnames[i],log=True)
+            DEDlib.DOSplot(DOST[i],nonintrho,omega,file+selecm[l],labelnames[i],log=True,ymax=10)
             DEDlib.textfileW(omega,np.ravel(selectpT),np.ravel(selectpcT),DOST[i],file+selecm[l])
         filenames.close()
-        DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNR'+structname+selecm[l],nonintrho,log=True)
+        DEDlib.DOSmultiplot(omega,np.tile(omega,(len(filenames),1)),DOST,np.tile(len(omega),len(filenames)),labelnames,'GrapheneNR'+structname+selecm[l],nonintrho,log=True,ymax=10)
         np.savetxt('GrapheneNR'+structname+selecm[l]+'nd.txt',nd,delimiter='\t',newline='\n')
     eigsel.close()
 

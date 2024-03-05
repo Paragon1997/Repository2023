@@ -14,7 +14,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
-#add plot tab for coler settings etc. and text legend
+#status bar in window
 #prevent cross sim loading
 #add ask window main root window
 #other main functions in seperate windows (graphene, S etc.)
@@ -64,7 +64,10 @@ def savegraph(root,entry):
     if root.DEDargs[7]=='AS':root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]+(root.AvgSigmadat[:,int(np.round(root.DEDargs[13]/2))]/root.Nfin)[:,None]+1j*root.DEDargs[5])))/np.pi).squeeze()
     else:root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
     if entry.get().endswith(".json"):
-        DOSplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json",""),'$\\rho_{constr.},N,$n='+str(root.DEDargs[1]))
+        DOSplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
+        if root.DEDargs[16]:
+            DOSxlogplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json","")+"logx",root.graphlegend_Entry.get(),ymax=float(root.graphymax_Entry.get()),incneg=True)
+            DOSxlogplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json","")+"logxpos",root.graphlegend_Entry.get(),ymax=float(root.graphymax_Entry.get()),incneg=False)
     else:
         entry.delete(0,last_index=tk.END)
         entry.insert(0,'Try again') 
@@ -116,9 +119,9 @@ class mainApp(ctk.CTk):
         if self.msg.get()=="Yes": self.destroy()
 
 class SAIMWINDOW(ctk.CTkToplevel):
-    def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,*args,**kwargs):
+    def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,ymax=1.2,logy=False,fDOScolor='b',*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.root,self.paused,self.started,self.stopped,self.loaded,self.poleDOS,self.telapsed,self.DEDargs=selfroot,False,False,False,False,False,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base]
+        self.root,self.paused,self.started,self.stopped,self.loaded,self.poleDOS,self.telapsed,self.DEDargs=selfroot,False,False,False,False,False,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base,ymax,logy,fDOScolor]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
         self.c,self.pbar,self.eta=[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
@@ -205,8 +208,10 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.settings_tab.grid(row=0,column=3,rowspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         self.settings_tab.add("Adv.")
         self.settings_tab.add("Multi orb.")
+        self.settings_tab.add("Graph")
         self.settings_tab.tab("Adv.").grid_columnconfigure(0,weight=1)
         self.settings_tab.tab("Multi orb.").grid_columnconfigure(0,weight=1)
+        self.settings_tab.tab("Graph").grid_columnconfigure(0,weight=1)
         self.scrollable_tab=ctk.CTkScrollableFrame(self.settings_tab.tab("Adv."),height=350,width=220,label_text="Advanced settings",label_font=ctk.CTkFont(size=20,weight="bold"),label_fg_color="transparent")
         self.scrollable_tab.grid(row=0, column=0,rowspan=2, padx=(0, 0), pady=(0, 0))
         self.eta_label=ctk.CTkLabel(self.scrollable_tab,text="Imaginary part of frequency arg. of\nGreen's function \u03B7 ([slope,offset]):",anchor="w")
@@ -255,6 +260,25 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.J_Entry=ctk.CTkEntry(self.settings_tab.tab("Multi orb."),placeholder_text="0")
         self.J_Entry.grid(row=6,column=0,padx=10,pady=(0,0))
         self.J_Entry.insert(0,str(self.DEDargs[10]))
+        self.tab_label3=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Graph settings",font=ctk.CTkFont(size=20,weight="bold"))
+        self.tab_label3.grid(row=0,column=0,padx=10,pady=(10,10))
+        self.graphlegend_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Legend label:",anchor="w")
+        self.graphlegend_label.grid(row=1,column=0,padx=10,pady=(5,0))
+        self.graphlegend_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),width=200,placeholder_text='$\\rho_{constr.},N,$n='+str(self.DEDargs[1]))
+        self.graphlegend_Entry.grid(row=2,column=0,padx=10,pady=(0,0))
+        self.graphlegend_Entry.insert(0,'$\\rho_{constr.},N,$n='+str(self.DEDargs[1]))
+        self.graphymax_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Limit y-axis:",anchor="w")
+        self.graphymax_label.grid(row=3,column=0,padx=10,pady=(5,0))
+        self.graphymax_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),placeholder_text='1.2')
+        self.graphymax_Entry.grid(row=4,column=0,padx=10,pady=(0,0))
+        self.graphymax_Entry.insert(0,str(self.DEDargs[18]))
+        self.graphlogy_checkbox=ctk.CTkCheckBox(master=self.settings_tab.tab("Graph"),text="Logarithmic y scale")
+        self.graphlogy_checkbox.grid(row=5,column=0,padx=10,pady=(10,0))
+        self.graphfDOScolor_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Interacting DOS color:",anchor="w")
+        self.graphfDOScolor_label.grid(row=6,column=0,padx=10,pady=(5,0))
+        self.graphfDOScolor_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),placeholder_text='b')
+        self.graphfDOScolor_Entry.grid(row=7,column=0,padx=10,pady=(0,0))
+        self.graphfDOScolor_Entry.insert(0,str(self.DEDargs[20]))
         self.protocol('WM_DELETE_WINDOW',self.enableroot)
 
     def enableroot(self):
@@ -276,7 +300,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 else:
                     self.N_Entry.delete(0,last_index=tk.END)
                     self.N_Entry.insert(0,str(self.pbar.n))
-                self.DEDargs[1:],self.progressbar_1.Total,self.progressbar_1.itnum=[int(self.scaling_optionemenu.get()),float(self.U_Entry.get()),float(self.Sigma_Entry.get()),float(self.Ed_Entry.get()),float(self.Gamma_Entry.get()),self.ctype_optionemenu.get(),self.Edcalc_optionemenu.get(),int(self.Nimpurities_optionemenu.get()),float(self.U2_Entry.get()),float(self.J_Entry.get()),literal_eval(self.Tk_Entry.get()),literal_eval(self.eta_Entry.get()),int(self.SizeO_Entry.get()),float(self.bound_Entry.get()),self.DEDargs[15],bool(self.log_checkbox.get()),float(self.base_Entry.get())],self.DEDargs[0],self.pbar.n
+                self.DEDargs[1:],self.progressbar_1.Total,self.progressbar_1.itnum=[int(self.scaling_optionemenu.get()),float(self.U_Entry.get()),float(self.Sigma_Entry.get()),float(self.Ed_Entry.get()),float(self.Gamma_Entry.get()),self.ctype_optionemenu.get(),self.Edcalc_optionemenu.get(),int(self.Nimpurities_optionemenu.get()),float(self.U2_Entry.get()),float(self.J_Entry.get()),literal_eval(self.Tk_Entry.get()),literal_eval(self.eta_Entry.get()),int(self.SizeO_Entry.get()),float(self.bound_Entry.get()),self.DEDargs[15],bool(self.log_checkbox.get()),float(self.base_Entry.get()),float(self.graphymax_Entry.get()),bool(self.graphlogy_checkbox.get()),self.graphfDOScolor_Entry.get()],self.DEDargs[0],self.pbar.n
                 self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
                 self.U_Entry.configure(state="disabled")
                 self.Sigma_Entry.configure(state="disabled")
@@ -307,7 +331,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
             try:
                 self.data=AvgSigmajsonfileR(self.entry.get())
                 self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
-                self.DEDargs=[self.data["Ntot"],self.data["poles"],self.data["U"],self.data["Sigma"],self.data["Ed"],self.data["Gamma"],self.data["ctype"],self.data["Edcalc"],self.data["Nimpurities"],self.data["U2"],self.data["J"],self.data["Tk"],self.data["etaco"],self.data["SizeO"],self.data["bound"],self.data["posb"],self.data["log"],self.data["base"]]
+                self.DEDargs=[self.data["Ntot"],self.data["poles"],self.data["U"],self.data["Sigma"],self.data["Ed"],self.data["Gamma"],self.data["ctype"],self.data["Edcalc"],self.data["Nimpurities"],self.data["U2"],self.data["J"],self.data["Tk"],self.data["etaco"],self.data["SizeO"],self.data["bound"],self.data["posb"],self.data["log"],self.data["base"],self.DEDargs[18],self.DEDargs[19],self.DEDargs[20]]
                 self.progressbar_1.Total,self.progressbar_1.itnum=self.pbar.total,self.pbar.n=self.DEDargs[0],self.data["Nit"]
                 self.progressbar_1.set(self.pbar.n/self.DEDargs[0])
                 self.eta,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
@@ -442,12 +466,17 @@ class SAIMWINDOW(ctk.CTkToplevel):
         plt.rc('xtick',labelsize=17,color='white')
         plt.rc('ytick',labelsize=17,color='white')
         plt.xlim(min(self.omega),max(self.omega))
-        plt.gca().set_ylim(bottom=0,top=1.2)
-        plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),2*int(max(self.omega))+1),minor=False)
+        if not bool(self.graphlogy_checkbox.get()):
+            plt.gca().set_ylim(bottom=0,top=float(self.graphymax_Entry.get()))
+            plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),2*int(max(self.omega))+1),minor=False)
+        else:
+            plt.yscale('log')
+            plt.gca().set_ylim(bottom=0.0001,top=float(self.graphymax_Entry.get()))
+            plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),int(max(self.omega))+int(max(self.omega))%2+1),minor=False)     
         plt.xlabel("$\\omega$ [-]",**self.axis_font,color='white')
         plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**self.axis_font,color='white')
         plt.plot(self.omega,self.Lor,'--r',linewidth=4,label='$\\rho_0$')
-        plt.plot(self.omega,self.fDOS,'-b',label='$\\rho,$n='+str(self.DEDargs[1]))
+        plt.plot(self.omega,self.fDOS,self.graphfDOScolor_Entry.get(),label=self.graphlegend_Entry.get())
         plt.legend(fancybox=False).get_frame().set_edgecolor('black')
         plt.grid()
         plt.tight_layout()

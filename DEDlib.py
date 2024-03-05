@@ -307,15 +307,14 @@ Function with calculated distribution of selected sites based on the results of 
                                                          for j in range(1,bar-2)],[((bomega[i]<selectnon)&(selectnon<=bomega[i+1])).sum() 
                                                                                    for i in range(0,bar-1)]
 
-def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True):
+def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True,fDOScolor='b'):
     """DOSplot(fDOS,Lor,omega,name,labels). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
-    fig=plt.figure(figsize=(10,8))
+    fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'25'}
     plt.rc('legend',fontsize=17)
     plt.rc('font',size=25)
     plt.rc('xtick',labelsize=25,color='black')
     plt.rc('ytick',labelsize=25,color='black')
-    axis_font={'fontname':'Calibri','size':'25'}
     plt.xlim(min(omega),max(omega))
     if not log:
         plt.gca().set_ylim(bottom=0,top=ymax)
@@ -323,11 +322,11 @@ A plot function to present results from the AIM moddeling for a single results w
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
-        plt.gca().set_xticks([-8,-6,-4,-2,0,2,4,6,8],minor=False)
+        plt.gca().set_xticks(np.linspace(min(omega),max(omega),int(max(omega))+int(max(omega))%2+1),minor=False)
     plt.xlabel("$\\omega$ [-]",**axis_font,color='black')
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font,color='black')
     plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
-    plt.plot(omega,fDOS,'-b',label=labels)
+    plt.plot(omega,fDOS,fDOScolor,label=labels)
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.grid()
     plt.tight_layout()
@@ -339,24 +338,22 @@ A plot function to present results from the AIM moddeling for a single results w
     plt.close()
     return fig
 
-def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2,save=True):
+def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2,save=True,colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']):
     """DOSmultiplot(omega,omegap,DOST,plotp,labels,name).
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
-    colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
-    fig=plt.figure(figsize=(10,8))
+    fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'18'}
     plt.rc('legend',fontsize=18)
     plt.rc('font',size=18)
     plt.rc('xtick',labelsize=18)
     plt.rc('ytick',labelsize=18)
-    axis_font={'fontname':'Calibri','size':'18'}
     plt.xlim(min(omega),max(omega))
     if not log:
         plt.gca().set_ylim(bottom=0,top=ymax)
         plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
     else: 
         plt.yscale('log')
-        plt.gca().set_ylim(bottom=0.0001,top=10)
-        plt.gca().set_xticks([-8,-6,-4,-2,0,2,4,6,8],minor=False)
+        plt.gca().set_ylim(bottom=0.0001,top=ymax)
+        plt.gca().set_xticks(np.linspace(min(omega),max(omega),int(max(omega))+int(max(omega))%2+1),minor=False)
     plt.xlabel("$\\omega$ [-]",**axis_font)
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font)
     plt.plot(omega,rho0,'--',color='black',linewidth=4,label='$\\rho_0$')
@@ -372,13 +369,12 @@ Multi plot function to combine datasets in one graph for comparison including a 
     plt.close()
     return fig
 
-def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incneg=True):
-    fig=plt.figure(figsize=(10+incneg*10,8))
+def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incneg=True,fDOScolor='b'):
+    fig,axis_font=plt.figure(figsize=(10+incneg*10,8)),{'fontname':'Calibri','size':'18'}
     plt.rc('legend',fontsize=17)
     plt.rc('font',size=18)
     plt.rc('xtick',labelsize=18)
     plt.rc('ytick',labelsize=18)
-    axis_font={'fontname':'Calibri','size':'18'}
     if incneg:
         ax1=fig.add_subplot(121)
         ax2=fig.add_subplot(122)
@@ -390,13 +386,13 @@ def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incne
         ax1.set_ylim(0,ymax)
         ax1.xaxis.set_major_formatter(FuncFormatter(lambda x,pos: '$-\\mathdefault{10^{'+f'{int(np.log10(x))}'+'}}$'))
         ax1.plot(-omega[:len(omega)//2],Lor[:len(omega)//2],'--r',linewidth=4,label='$\\rho_0$')
-        ax1.plot(-omega[:len(omega)//2],fDOS[:len(omega)//2],'-b',label=labels)
+        ax1.plot(-omega[:len(omega)//2],fDOS[:len(omega)//2],fDOScolor,label=labels)
         ax2.set_xlim(xloglim,max(omega))
         ax2.set_xscale('log')
         ax2.set_ylim(0,ymax)
         ax2.yaxis.set_tick_params(labelleft=False)
         ax2.plot(omega[len(omega)//2:],Lor[len(omega)//2:],'--r',linewidth=4,label='$\\rho_0$')
-        ax2.plot(omega[len(omega)//2:],fDOS[len(omega)//2:],'-b',label=labels)
+        ax2.plot(omega[len(omega)//2:],fDOS[len(omega)//2:],fDOScolor,label=labels)
         ax1.grid()
         ax2.grid()
         ax1.set_xlabel("$\\omega$ [-]",**axis_font)
@@ -409,7 +405,7 @@ def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incne
         plt.xlabel("$\\omega$ [-]",**axis_font)
         plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font)
         plt.plot(omega[len(omega)//2:],Lor[len(omega)//2:],'--r',linewidth=4,label='$\\rho_0$')
-        plt.plot(omega[len(omega)//2:],fDOS[len(omega)//2:],'-b',label=labels)
+        plt.plot(omega[len(omega)//2:],fDOS[len(omega)//2:],fDOScolor,label=labels)
         plt.grid()
     plt.legend(fancybox=False).get_frame().set_edgecolor('black')
     plt.tight_layout()
@@ -421,13 +417,11 @@ def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incne
     plt.close()
     return fig
 
-def Entropyplot(Tk,S_imp,labels,name):
-    colors=['crimson','darkorange','goldenrod','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']
-    fig=plt.figure(figsize=(10,8))
+def Entropyplot(Tk,S_imp,labels,name,colors=['crimson','darkorange','goldenrod','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']):
+    fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'17'}
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
     plt.rc('ytick',labelsize=15)
-    axis_font={'fontname':'Calibri','size':'17'}
     plt.xlim(min(Tk),max(Tk))
     plt.xscale('log')
     plt.xlabel("$k_BT$ [-]",**axis_font)
@@ -447,11 +441,10 @@ def Entropyplot(Tk,S_imp,labels,name):
     return fig
 
 def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
-    fig=plt.figure(figsize=(10,8))
+    fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'17'}
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
     plt.rc('ytick',labelsize=15)
-    axis_font={'fontname':'Calibri','size':'17'}
     plt.xlim(min(Nstdev),max(Nstdev))
     plt.xscale('log')
     plt.xlabel("$N$ [-]",**axis_font)
