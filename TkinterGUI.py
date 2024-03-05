@@ -64,10 +64,12 @@ def savegraph(root,entry):
     if root.DEDargs[7]=='AS':root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]+(root.AvgSigmadat[:,int(np.round(root.DEDargs[13]/2))]/root.Nfin)[:,None]+1j*root.DEDargs[5])))/np.pi).squeeze()
     else:root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
     if entry.get().endswith(".json"):
-        DOSplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
-        if root.DEDargs[16]:
-            DOSxlogplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json","")+"logx",root.graphlegend_Entry.get(),ymax=float(root.graphymax_Entry.get()),incneg=True)
-            DOSxlogplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json","")+"logxpos",root.graphlegend_Entry.get(),ymax=float(root.graphymax_Entry.get()),incneg=False)
+        try:
+            DOSplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
+            if root.DEDargs[16]:
+                DOSxlogplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json","")+"logx",root.graphlegend_Entry.get(),ymax=float(root.graphymax_Entry.get()),incneg=True)
+                DOSxlogplot(root.fDOS,root.Lor,root.omega,entry.get().replace(".json","")+"logxpos",root.graphlegend_Entry.get(),ymax=float(root.graphymax_Entry.get()),incneg=False)
+        except: pass
     else:
         entry.delete(0,last_index=tk.END)
         entry.insert(0,'Try again') 
@@ -274,7 +276,7 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.graphymax_Entry.insert(0,str(self.DEDargs[18]))
         self.graphlogy_checkbox=ctk.CTkCheckBox(master=self.settings_tab.tab("Graph"),text="Logarithmic y scale")
         self.graphlogy_checkbox.grid(row=5,column=0,padx=10,pady=(10,0))
-        self.graphfDOScolor_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Interacting DOS color:",anchor="w")
+        self.graphfDOScolor_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Interacting DOS color/style:",anchor="w")
         self.graphfDOScolor_label.grid(row=6,column=0,padx=10,pady=(5,0))
         self.graphfDOScolor_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),placeholder_text='b')
         self.graphfDOScolor_Entry.grid(row=7,column=0,padx=10,pady=(0,0))
@@ -458,38 +460,40 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.start_button.configure(state="normal")
 
     def showgraph(self):
-        mpl.rc('axes',edgecolor='white')
-        if self.DEDargs[7]=='AS':self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]+(self.AvgSigmadat[:,int(np.round(self.DEDargs[13]/2))]/self.Nfin)[:,None]+1j*self.DEDargs[5])))/np.pi).squeeze()
-        else:self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]-self.DEDargs[4]+1j*self.DEDargs[5])))/np.pi).squeeze()
-        plt.rc('legend',fontsize=14)
-        plt.rc('font',size=19)
-        plt.rc('xtick',labelsize=17,color='white')
-        plt.rc('ytick',labelsize=17,color='white')
-        plt.xlim(min(self.omega),max(self.omega))
-        if not bool(self.graphlogy_checkbox.get()):
-            plt.gca().set_ylim(bottom=0,top=float(self.graphymax_Entry.get()))
-            plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),2*int(max(self.omega))+1),minor=False)
-        else:
-            plt.yscale('log')
-            plt.gca().set_ylim(bottom=0.0001,top=float(self.graphymax_Entry.get()))
-            plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),int(max(self.omega))+int(max(self.omega))%2+1),minor=False)     
-        plt.xlabel("$\\omega$ [-]",**self.axis_font,color='white')
-        plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**self.axis_font,color='white')
-        plt.plot(self.omega,self.Lor,'--r',linewidth=4,label='$\\rho_0$')
-        plt.plot(self.omega,self.fDOS,self.graphfDOScolor_Entry.get(),label=self.graphlegend_Entry.get())
-        plt.legend(fancybox=False).get_frame().set_edgecolor('black')
-        plt.grid()
-        plt.tight_layout()
-        self.fig.set_facecolor("none")
-        plt.gca().set_facecolor("#242424")
-        self.plot_frame.configure(fg_color="transparent")
-        self.canvas=FigureCanvasTkAgg(self.fig,master=self.plot_frame)
-        self.canvas.get_tk_widget().config(bg="#242424")
-        self.canvas.draw()
-        self.canvas.get_tk_widget().grid(row=1,column=1)
-        self.plot_frame.grid_rowconfigure((0,2),weight=1)
-        self.plot_frame.grid_columnconfigure((0,2),weight=1)
-        self.plot_frame.update()
+        try:
+            mpl.rc('axes',edgecolor='white')
+            if self.DEDargs[7]=='AS':self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]+(self.AvgSigmadat[:,int(np.round(self.DEDargs[13]/2))]/self.Nfin)[:,None]+1j*self.DEDargs[5])))/np.pi).squeeze()
+            else:self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]-self.DEDargs[4]+1j*self.DEDargs[5])))/np.pi).squeeze()
+            plt.rc('legend',fontsize=14)
+            plt.rc('font',size=19)
+            plt.rc('xtick',labelsize=17,color='white')
+            plt.rc('ytick',labelsize=17,color='white')
+            plt.xlim(min(self.omega),max(self.omega))
+            if not bool(self.graphlogy_checkbox.get()):
+                plt.gca().set_ylim(bottom=0,top=float(self.graphymax_Entry.get()))
+                plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),2*int(max(self.omega))+1),minor=False)
+            else:
+                plt.yscale('log')
+                plt.gca().set_ylim(bottom=0.0001,top=float(self.graphymax_Entry.get()))
+                plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),int(max(self.omega))+int(max(self.omega))%2+1),minor=False)     
+            plt.xlabel("$\\omega$ [-]",**self.axis_font,color='white')
+            plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**self.axis_font,color='white')
+            plt.plot(self.omega,self.Lor,'--r',linewidth=4,label='$\\rho_0$')
+            plt.plot(self.omega,self.fDOS,self.graphfDOScolor_Entry.get(),label=self.graphlegend_Entry.get())
+            plt.legend(fancybox=False).get_frame().set_edgecolor('black')
+            plt.grid()
+            plt.tight_layout()
+            self.fig.set_facecolor("none")
+            plt.gca().set_facecolor("#242424")
+            self.plot_frame.configure(fg_color="transparent")
+            self.canvas=FigureCanvasTkAgg(self.fig,master=self.plot_frame)
+            self.canvas.get_tk_widget().config(bg="#242424")
+            self.canvas.draw()
+            self.canvas.get_tk_widget().grid(row=1,column=1)
+            self.plot_frame.grid_rowconfigure((0,2),weight=1)
+            self.plot_frame.grid_columnconfigure((0,2),weight=1)
+            self.plot_frame.update()
+        except: pass
         plt.close()
 
 class polesWINDOW(ctk.CTkToplevel):
