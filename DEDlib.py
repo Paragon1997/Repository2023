@@ -12,10 +12,8 @@ import kwant
 import scipy
 from numba import njit
 
-#class DED:
-
 def Jordan_wigner_transform(j,lattice_length):
-    """Jordan_wigner_transform(j, lattice_length). 
+    """Jordan_wigner_transform(j,lattice_length). 
 Defines the Jordan Wigner transformation for a 1D lattice."""
     operators=sigmaz()
     for _ in range(j-1):operators=tensor(operators,sigmaz())
@@ -26,13 +24,13 @@ Defines the Jordan Wigner transformation for a 1D lattice."""
 
 @njit
 def Lorentzian(omega,Gamma,poles,Ed=-3/2,Sigma=3/2):
-    """Lorentzian(omega, Gamma, poles,Ed=-3/2,Sigma=3/2). 
+    """Lorentzian(omega,Gamma,poles,Ed=-3/2,Sigma=3/2). 
 Defines the non-interacting DOS (rho0) and selects random sites based on the number of sites in the 1D lattice model and the calculated distribution."""
     return -np.imag(1/(omega-Ed-Sigma+1j*Gamma))/np.pi,np.array([Gamma*np.tan(np.pi*(pi-1/2))+Ed+Sigma for pi in np.random.uniform(0,1,poles)])
 
 @njit
 def Startrans(poles,select,omega,eta,row=0):
-    """Startrans(poles,select,row,omega, eta). 
+    """Startrans(poles,select,omega,eta,row=0). 
 Function to transform 1D lattice matrices in order to calculates parameters impengergy, bathenergy and Vkk from random sampling distribution."""
     Pbath,Dbath,pbar,G=np.zeros((poles,poles)),np.zeros((poles,poles)),np.zeros((poles,poles)),np.zeros(omega.shape,dtype='complex_')
     for i in range(poles-1):
@@ -47,6 +45,8 @@ Function to transform 1D lattice matrices in order to calculates parameters impe
     return pbar.T@Pbath@Dbath@Pbath.T@pbar,G,select
 
 def Operators(c,Nimpurities,poles):
+    """Operators(c,Nimpurities,poles).
+Calculates various operators to construct the required (non-)interacting Hamiltonians."""
     posimp=[int(2*poles/Nimpurities*i) for i in range(Nimpurities)]
     impn=[sum([c[posimp[k]+i].dag()*c[posimp[k]+i] for i in range(2)]) for k in range(Nimpurities)]
     bathn=[[sum([c[2*j+i+2+posimp[k]].dag()*c[2*j+i+2+posimp[k]] for i in range(2)]) for j in range(int(poles/Nimpurities)-1)] for k in range(Nimpurities)]
@@ -60,7 +60,7 @@ def Operators(c,Nimpurities,poles):
     return (impn,bathn,crossn,Un,Sigman,U2n,Jn),n
 
 def HamiltonianAIM(impenergy,bathenergy,Vkk,U,Sigma,U2,J,Hn,H0=0):
-    """HamiltonianAIM(c, impenergy, bathenergy, Vkk, U, Sigma). 
+    """HamiltonianAIM(impenergy,bathenergy,Vkk,U,Sigma,U2,J,Hn,H0=0). 
 Based on energy parameters calculates the Hamiltonian of a single-impurity system."""
     for k in range(len(impenergy)):
         H0+=impenergy[k]*Hn[0][k]
@@ -69,12 +69,16 @@ Based on energy parameters calculates the Hamiltonian of a single-impurity syste
 
 @njit
 def MBGT0(omega,eta,evals,exp,exp2):
+    """MBGT0(omega,eta,evals,exp,exp2).
+Determines the many body Green's function for the T=0 case given the eigen-values and -vectors."""
     G=np.zeros(len(omega),dtype='complex_')
     for i,expi in enumerate(exp): G+=abs(expi)**2/(omega+evals[i+1]-evals[0]+1.j*eta)+abs(exp2[i])**2/(omega+evals[0]-evals[i+1]+1.j*eta)
     return G
 
 @njit
 def MBGTnonzero(omega,eta,evals,exp,exp2,eevals):
+    """MBGTnonzero(omega,eta,evals,exp,exp2,eevals).
+Determines the many body Green's function for the T>0 case given the eigen-values and -vectors."""
     G=np.zeros(len(omega),dtype='complex_')
     for i,evi in enumerate(evals):
         for j,evj in enumerate(evals):
@@ -82,8 +86,8 @@ def MBGTnonzero(omega,eta,evals,exp,exp2,eevals):
     return G
 
 def MBGAIM(omega,H,c,eta,Tk,Boltzmann,poleDOS,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int')):
-    """MBGAIM(omega, H, c, eta). 
-Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states."""
+    """MBGAIM(omega,H,c,eta,Tk,Boltzmann,poleDOS,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int')). 
+Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states for given temperatures."""
     if poleDOS: return np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])
     else:
         if ~np.any(evals):evals,evecs=scipy.linalg.eigh(H.data.toarray())
@@ -101,7 +105,7 @@ Calculates the many body Green's function based on the Hamiltonian eigenenergies
             return MGdat.squeeze(),Boltzmann,evecs[:,0]
 
 def Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin,poleDOS):
-    """Constraint(ctype,H0,H,omega,eta,c,n). 
+    """Constraint(ctype,H0,H,omega,eta,c,n,Tk,Nfin,poleDOS). 
 Constraint implementation function for DED method with various possible constraints."""
     if ctype[0]=='m':
         vecs=scipy.sparse.csr_matrix(np.vstack((scipy.sparse.linalg.eigsh(np.real(H0.data),k=1,which='SA')[1][:,0],
@@ -141,10 +145,12 @@ Constraint implementation function for DED method with various possible constrai
         return MBGAIM(omega,H,c,eta,Tk,np.ones(len(Tk)),poleDOS),True
     
 def find_nearest(array,value):
+    """find_nearest(array,value).
+For an array finds the index of the number closest to the given value."""
     for i in (i for i,arrval in enumerate(array) if np.isclose(arrval,value,atol=0.1)): return i
 
 def main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,poleDOS=False):
-    """main(N=1000000,poles=4,U=3,Sigma=3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39], ctype='n',Ed='AS'). 
+    """main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,poleDOS=False). 
 The main DED function simulating the Anderson impurity model for given parameters."""
     if log:omega,selectpcT,selectpT,Npoles=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities)
     else:omega,selectpcT,selectpT,Npoles=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities)
@@ -169,6 +175,8 @@ The main DED function simulating the Anderson impurity model for given parameter
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]-Ed+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles,Ed,Sigma)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
 def ConstraintS(ctype,H0,H,n,Tk,Nfin=0):
+    """ConstraintS(ctype,H0,H,n,Tk,Nfin=0).
+Constraint implementation function for Entropy DED calculation method with various possible constraints."""
     if ctype[0]=='s':
         vecs=scipy.linalg.eigh(H0.data.toarray(),eigvals=[0,0])[1][:,0]
         evals,evecs=scipy.linalg.eigh(H.data.toarray())
@@ -193,11 +201,15 @@ def ConstraintS(ctype,H0,H,n,Tk,Nfin=0):
 
 @njit
 def SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin):
+    """SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin).
+Calculates the impurity entropy based on AIM derivation of entropy."""
     S_tot,S_bath=kb*(Z_tot+evals@np.exp(np.outer(-evals,1/Tk)-Z_tot)/Tk),np.zeros(len(Tk))
-    for ek in E_k: S_bath+=2*kb*(np.logaddexp(np.zeros(len(Tk)),-ek/Tk)+ek/np.exp(np.logaddexp(np.zeros(len(Tk)),ek/Tk))/Tk)
+    for ek in E_k:S_bath+=2*kb*(np.logaddexp(np.zeros(len(Tk)),-ek/Tk)+ek/np.exp(np.logaddexp(np.zeros(len(Tk)),ek/Tk))/Tk)
     return S_t+S_tot*constr,S_b+S_bath*constr,S_imp+(S_tot-S_bath)*constr,Nfin+constr
 
 def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',bound=3,Tk=np.logspace(-6,2,801,base=10),kb=1,posb=1):
+    """Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',bound=3,Tk=np.logspace(-6,2,801,base=10),kb=1,posb=1).
+The main impurity entropy DED function simulating the Anderson impurity model for given parameters."""
     omega,eta,selectpcT,selectpT,S_imp,S_t,S_b,c=np.linspace(-bound,bound,SizeO),etaco[0]*abs(np.linspace(-bound,bound,SizeO))+etaco[1],[],[],np.zeros(len(Tk),dtype=np.float64),np.zeros(len(Tk),dtype=np.float64),np.zeros(len(Tk),dtype=np.float64),[Jordan_wigner_transform(i, 2*poles) for i in range(2*poles)]
     (Hn,n),Nfin,pbar=Operators(c,1,poles),np.zeros(len(Tk),dtype='float'),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     while pbar.n<N:
@@ -220,8 +232,8 @@ def Entropyimp_main(N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,
     return np.abs(S_imp/Nfin).squeeze(),np.real(S_t/Nfin).squeeze(),np.real(S_b/Nfin).squeeze(),Nfin.squeeze(),Tk,(pbar.format_dict["n"],pbar.format_dict["elapsed"])
 
 def GrapheneAnalyzer(imp,fsyst,colorbnd,filename,SizeO=4001,bound=8,etaco=[0.02,1e-24],omegastat=100001,log=False,base=1.5):
-    """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,omega=np.linspace(-8,8,4001),etaco=[0.02,1e-24],omegastat=100001).
-Returns data regarding a defined graphene circular structure such as the corresponding Green's function."""
+    """GrapheneAnalyzer(imp,fsyst,colorbnd,filename,SizeO=4001,bound=8,etaco=[0.02,1e-24],omegastat=100001,log=False,base=1.5).
+Returns data regarding a defined graphene structure fsyst such as the corresponding Green's function."""
     if log:omega=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=1.5),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base)))
     else:omega=np.linspace(-bound,bound,SizeO)
     def plotsize(i): return 0.208 if i == imp else 0.125
@@ -248,23 +260,31 @@ Returns data regarding a defined graphene circular structure such as the corresp
                                     for i,eigv in enumerate(eig)],axis=0)
 
 def GrapheneNRzigzagstruct(W=2.5,L=12,x=-11.835680518387328,dy=0.5,Wo=0,Lo=0,t=1):
+    """GrapheneNRzigzagstruct(W=2.5,L=12,x=-11.835680518387328,dy=0.5,Wo=0,Lo=0,t=1).
+Defines graphene zigzag structure based on given parameters."""
     lat,sys=kwant.lattice.Polyatomic([[np.sqrt(3)/2,0.5],[0,1]],[[-1/np.sqrt(12),-0.5],[1/np.sqrt(12),-0.5]]),kwant.Builder()
     sys[lat.shape(ribbon(W,L),(0,0))],sys[lat.neighbors(1)]=0,-t
     del sys[lat.shape(ribbon(W,dy,x,0),(x,0))],sys[lat.shape(ribbon(Wo,Lo,-x,-W),(-x,-W))],sys[lat.shape(ribbon(Wo,Lo,-x,W),(-x,W))]
     return sys.finalized()
 
 def GrapheneNRarmchairstruct(W=3,L=12,y=-2.8867513459481287,Wo=0,Lo=0,t=1):
+    """GrapheneNRarmchairstruct(W=3,L=12,y=-2.8867513459481287,Wo=0,Lo=0,t=1).
+Defines graphene armchair structure based on given parameters."""
     lat,sys=kwant.lattice.Polyatomic([[1,0],[0.5,np.sqrt(3)/2]],[[0,1/np.sqrt(3)],[0,0]]),kwant.Builder()
     sys[lat.shape(ribbon(W,L),(0,0))],sys[lat.neighbors(1)]=0,-t
     del sys[lat.shape(ribbon(Wo,Lo,L,y),(L,y))],sys[lat.shape(ribbon(Wo,Lo,-L,y),(-L,y))]
     return sys.finalized()
 
 def ribbon(W,L,x=0,y=0):
+    """ribbon(W,L,x=0,y=0).
+Returns dimensions of ribbon structure."""
     def shape(pos):
         return (-L<=pos[0]-x<=L and -W<=pos[1]-y<=W)
     return shape
 
 def Graphenecirclestruct(r=1.5,t=1):
+    """Graphenecirclestruct(r=1.5,t=1).
+Defines graphene circular structure based on given parameters."""
     def circle(pos):
         return pos[0]**2+pos[1]**2<r**2
     lat,syst=kwant.lattice.honeycomb(norbs=1),kwant.Builder()
@@ -272,7 +292,7 @@ def Graphenecirclestruct(r=1.5,t=1):
     return syst.finalized()
 
 def Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24],ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,poleDOS=False):
-    """Graphene_main(graphfunc,args,imp,colorbnd,name,N=200000,poles=4,U=3,Sigma=3/2,SizeO=4001,etaco=[0.02,1e-24], ctype='n',Ed='AS',bound=8,eigsel=False). 
+    """Graphene_main(psi,SPG,eig,SPrho0,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,SizeO=4001,etaco=[0.02,1e-24],ctype='n',Edcalc='',bound=8,eigsel=False,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,poleDOS=False). 
 The main Graphene nanoribbon DED function simulating the Anderson impurity model on a defined graphene structure for given parameters."""
     if log: omega,selectpcT,selectpT,Npoles,pbar=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=base),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base))),[],[],int(poles/Nimpurities),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
     else: omega,selectpcT,selectpT,Npoles,pbar=np.linspace(-bound,bound,SizeO),[],[],int(poles/Nimpurities),trange(N,position=posb,leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}')
@@ -298,8 +318,8 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
 def PolestoDOS(select,selectnon,ratio=200,bound=3):
-    """PolestoDOS(select,selectnon,ratio=200). 
-Function with calculated distribution of selected sites based on the results of the DED algorithm."""
+    """PolestoDOS(select,selectnon,ratio=200,bound=3). 
+Function that calculates distribution of selected sites based on the results of the DED algorithm."""
     bar=int(len(select)/ratio)
     bomega=np.linspace(-bound,bound,bar)
     DOSp=[((bomega[i]<select)&(select<=bomega[i+1])).sum() for i in range(0,bar-1)]
@@ -308,7 +328,7 @@ Function with calculated distribution of selected sites based on the results of 
                                                                                    for i in range(0,bar-1)]
 
 def DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True,fDOScolor='b'):
-    """DOSplot(fDOS,Lor,omega,name,labels). 
+    """DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True,fDOScolor='b'). 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'25'}
     plt.rc('legend',fontsize=17)
@@ -339,7 +359,7 @@ A plot function to present results from the AIM moddeling for a single results w
     return fig
 
 def DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2,save=True,colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']):
-    """DOSmultiplot(omega,omegap,DOST,plotp,labels,name).
+    """DOSmultiplot(omega,omegap,DOST,plotp,labels,name,rho0,log=False,ymax=1.2,save=True,colors=['crimson','darkorange','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']).
 Multi plot function to combine datasets in one graph for comparison including a defined non-interacting DOS."""
     fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'18'}
     plt.rc('legend',fontsize=18)
@@ -370,6 +390,8 @@ Multi plot function to combine datasets in one graph for comparison including a 
     return fig
 
 def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incneg=True,fDOScolor='b'):
+    """DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incneg=True,fDOScolor='b').
+A plot function with a logarithmic x-axis to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     fig,axis_font=plt.figure(figsize=(10+incneg*10,8)),{'fontname':'Calibri','size':'18'}
     plt.rc('legend',fontsize=17)
     plt.rc('font',size=18)
@@ -418,6 +440,8 @@ def DOSxlogplot(fDOS,Lor,omega,name,labels,ymax=1.2,save=True,xloglim=1e-3,incne
     return fig
 
 def Entropyplot(Tk,S_imp,labels,name,colors=['crimson','darkorange','goldenrod','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']):
+    """Entropyplot(Tk,S_imp,labels,name,colors=['crimson','darkorange','goldenrod','lime','turquoise','cyan','dodgerblue','darkviolet','deeppink']).
+Entropy plot function to present results from the AIM moddeling for a single or multiple results."""
     fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'17'}
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
@@ -441,6 +465,8 @@ def Entropyplot(Tk,S_imp,labels,name,colors=['crimson','darkorange','goldenrod',
     return fig
 
 def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
+    """stdplot(Nstdev,stdavg,name,labelname,ymax=0.012).
+Plotting function for showing the standard deviation of the calculated DED iterations versus the number of iterations."""
     fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'17'}
     plt.rc('legend',fontsize=17)
     plt.rc('xtick',labelsize=15)
@@ -462,7 +488,7 @@ def stdplot(Nstdev,stdavg,name,labelname,ymax=0.012):
     return fig
     
 def textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[],savpoles=True):
-    """textfileW(omega,selectpT,selectpcT,fDOS,name).
+    """textfileW(omega,selectpT,selectpcT,fDOS,name,AvgSigmadat=[],savpoles=True).
 File writing function for DED results."""
     if AvgSigmadat==[]:np.savetxt(name+'.txt',np.transpose([omega,fDOS]),fmt='%.18g',delimiter='\t',newline='\n')
     else:np.savetxt(name+'.txt',np.c_[omega,fDOS,np.real(AvgSigmadat),np.imag(AvgSigmadat)],fmt='%.18f\t%.18f\t(%.18g%+.18gj)',delimiter='\t',newline='\n')

@@ -1,3 +1,6 @@
+## module TkinterGUI
+''' TkinterGUI is the Graphical User Interface made with Tkinter for using the DEDlib tooling library'''
+
 import tkinter as tk
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -21,16 +24,22 @@ warnings.filterwarnings("ignore",category=RuntimeWarning)
 #make exe with pyinstaller
 
 class NumpyArrayEncoder(JSONEncoder):
+    """NumpyArrayEncoder(JSONEncoder).
+Encodes Numpy array for json.dumps()."""
     def default(self,obj):
         if isinstance(obj,np.ndarray): return obj.tolist()
         return JSONEncoder.default(self,obj)
     
 def AvgSigmajsonfileR(name):
+    """AvgSigmajsonfileR(name).
+Loads .json file to collect DED data from previous simulation session."""
     data=json.load(open(name))
     data["AvgSigmadat"],data["nd"]=np.array(data["AvgSigmadat"],dtype=object).astype(np.complex128),np.array(data["nd"],dtype=object).astype(np.complex128)
     return data
 
 def AvgSigmajsonfileW(root,name):
+    """AvgSigmajsonfileW(root,name).
+Writes .json file including DED simulation settings and collected data."""
     if root.DEDargs[7]=='AS':root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]+(root.AvgSigmadat[:,int(np.round(root.DEDargs[13]/2))]/root.Nfin)[:,None]+1j*root.DEDargs[5])))/np.pi).squeeze()
     else:root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
     data={"Ntot":root.pbar.total,"Nit":root.pbar.n,"telapsed":root.pbar.format_dict["elapsed"],"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
@@ -39,11 +48,15 @@ def AvgSigmajsonfileW(root,name):
     with open(name,"w") as outfile: outfile.write(jsonObj)
 
 def savfilename(entry):
+    """savfilename(entry).
+Checks whether filename input in entry is valid for use in constructing .json file."""
     if not entry.get().endswith(".json"):
         entry.delete(0,last_index=tk.END)
         entry.insert(0,'Try again')
 
 def savedata(root,entry):
+    """savedata(root,entry).
+Saves DED results based on current simulation data."""
     if root.started or root.stopped:
         try:
             if not entry.get().endswith(".json"):
@@ -59,6 +72,8 @@ def savedata(root,entry):
             return False
 
 def savegraph(root,entry):
+    """savegraph(root,entry).
+Draws and saves DOS graph including the interacting DOS data acquired from the current DED simulation results."""
     mpl.rc('axes',edgecolor='black')
     _=savedata(root,entry)
     if root.DEDargs[7]=='AS':root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]+(root.AvgSigmadat[:,int(np.round(root.DEDargs[13]/2))]/root.Nfin)[:,None]+1j*root.DEDargs[5])))/np.pi).squeeze()
@@ -75,6 +90,8 @@ def savegraph(root,entry):
         entry.insert(0,'Try again') 
 
 class ProgressBar(ctk.CTkProgressBar):
+    """ProgressBar(ctk.CTkProgressBar).
+Custom progressbar with current (and total) number of iterations displayed on the bar."""
     def __init__(self,itnum,Total,*args,**kwargs):
         self.itnum,self.Total=itnum,Total
         super().__init__(*args,**kwargs)
@@ -88,9 +105,14 @@ class ProgressBar(ctk.CTkProgressBar):
         super().set(val,**kwargs)
         self._canvas.itemconfigure("progress_text",text=f"{self.itnum}/{self.Total}")
 
-def CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0): return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-7)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-31)*scale_factor)}"
+def CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0):
+    """CenterWindowToDisplay(Screen:ctk.CTk,width:int,height:int,scale_factor:float=1.0).
+Calculates the necessary coordinates for a customTkinter window to be displayed in the center of the screen."""
+    return f"{width}x{height}+{int((0.5*(Screen.winfo_screenwidth()-width)-7)*scale_factor)}+{int((0.5*(Screen.winfo_screenheight()-height)-31)*scale_factor)}"
 
 class mainApp(ctk.CTk):
+    """mainApp(ctk.CTk).
+The main customTkinter class for the DED Anderson impurity model simulator application window."""
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.app_width,self.app_height=300,200
@@ -111,16 +133,22 @@ class mainApp(ctk.CTk):
         self.protocol('WM_DELETE_WINDOW',self.quitApp)
 
     def open_toplevel(self,simsel):
+        """open_toplevel(self,simsel).
+    Class method to initialize selected window for specific simulation type."""
         self.toplevel_window=self.top_level_windows[simsel](selfroot=self)
         self.after(100,self.lower)
         self.scaling_optionemenu.configure(state="disabled")
         self.button_open.configure(state="disabled")
 
     def quitApp(self):
+        """quitApp(self).
+    Class method to show messagebox when attempting to close main window."""
         self.msg=CTkMessagebox(master=self,title="Exit?",message="Are you sure you want to quit the entire application?",icon="question",option_1="Cancel",option_2="No",option_3="Yes")
         if self.msg.get()=="Yes": self.destroy()
 
 class SAIMWINDOW(ctk.CTkToplevel):
+    """SAIMWINDOW(ctk.CTkToplevel).
+Class for Symmetric Anderson impurity model DED simmulation window."""
     def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,ymax=1.2,logy=False,fDOScolor='b',*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.root,self.paused,self.started,self.stopped,self.loaded,self.poleDOS,self.telapsed,self.DEDargs=selfroot,False,False,False,False,False,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base,ymax,logy,fDOScolor]
@@ -284,6 +312,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.protocol('WM_DELETE_WINDOW',self.enableroot)
 
     def enableroot(self):
+        """enableroot(self).
+    Class method to show messagebox when attempting to close SAIMWINDOW(ctk.CTkToplevel) window."""
         self.msg=CTkMessagebox(master=self,title="Exit?",message="Do you want to close the program?\nUnsaved progress will be lost.",icon="question",option_1="Cancel",option_2="No",option_3="Yes")
         if self.msg.get()=="Yes":
             self.root.scaling_optionemenu.configure(state="normal")
@@ -292,6 +322,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
             self.destroy()
 
     def parainit(self):
+        """"parainit(self).
+    Class method to save input parameters of DED from inputs in the SAIMWINDOW(ctk.CTkToplevel) window."""
         if not self.started:
             try:
                 if self.pbar.n<int(self.N_Entry.get()):
@@ -329,6 +361,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
             except: pass
 
     def fileloader(self):
+        """fileloader(self).
+    Class method to load .json file and save data and settings from that particular simulation session to utilize for current session."""
         if not self.started:
             try:
                 self.data=AvgSigmajsonfileR(self.entry.get())
@@ -394,6 +428,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.entry.insert(0,'Try again')
     
     def startDED(self):
+        """startDED(self).
+    Class method to start DED calculations by initiating loop."""
         self.start_button.configure(state="disabled")
         self.started,self.stopped,self.pbar.start_t=True,False,self.pbar._time()-self.telapsed
         self.N_Entry.configure(state="disabled")
@@ -419,6 +455,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.stop_button.configure(state="normal")
 
     def loopDED(self):
+        """loopDED(self).
+    Class method of the main SAIM DED loop which repeats iterations by repeatedly executing loopDED(self)."""
         if not self.stopped and not self.paused and self.pbar.n!=self.DEDargs[0]:
             self.iterationDED()
             self.progressbar_1.itnum=self.pbar.n
@@ -437,6 +475,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
             savegraph(self,self.entry_2)
 
     def iterationDED(self,reset=False):
+        """iterationDED(self,reset=False).
+    Class method of a single DED iteration which updates AvgSigmadat and other results for each iteration."""
         while not reset:
             self.NewM,self.nonG,_=Startrans(self.Npoles,np.sort(Lorentzian(self.omega,self.DEDargs[5],self.Npoles,self.DEDargs[4],self.DEDargs[3])[1]),self.omega,self.eta)
             self.H0,self.H=HamiltonianAIM(np.repeat(self.NewM[0][0],self.DEDargs[8]),np.tile([self.NewM[k+1][k+1] for k in range(len(self.NewM)-1)],(self.DEDargs[8],1)),np.tile(self.NewM[0,1:],(self.DEDargs[8],1)),self.DEDargs[2],self.DEDargs[3],self.DEDargs[9],self.DEDargs[10],self.Hn)
@@ -449,9 +489,13 @@ class SAIMWINDOW(ctk.CTkToplevel):
         self.pbar.refresh()
 
     def pauseDED(self):
+        """pauseDED(self).
+    Class method which pauses DED calculations while executing loopDED(self)."""
         if self.started: self.paused=not self.paused
 
     def stopDED(self):
+        """stopDED(self).
+    Class method which stops DED calculations in loopDED(self) and saves progress."""
         if savedata(self,self.entry_2) and not self.stopped and self.started:
             self.stopped,self.paused,self.started=True,False,False
             self.pause_button.configure(state="disabled")
@@ -460,6 +504,8 @@ class SAIMWINDOW(ctk.CTkToplevel):
                 self.start_button.configure(state="normal")
 
     def showgraph(self):
+        """showgraph(self).
+    Class method to show graph of current results based on finished iterations."""
         try:
             mpl.rc('axes',edgecolor='white')
             if self.DEDargs[7]=='AS':self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]+(self.AvgSigmadat[:,int(np.round(self.DEDargs[13]/2))]/self.Nfin)[:,None]+1j*self.DEDargs[5])))/np.pi).squeeze()
