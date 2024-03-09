@@ -559,6 +559,8 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         plt.close()
 
     def resetDED(self):
+        """``resetDED(self)``.\n
+    Class method to reset DED calculation progress in ``loopDED(self)``."""
         self.pbar.reset()
         if self.loaded:
             self.progressbar_1.itnum=self.pbar.n=self.data["Nit"]
