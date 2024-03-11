@@ -6,8 +6,8 @@ warnings.filterwarnings("ignore",category=RuntimeWarning)
 from tqdm.auto import trange
 from qutip import *
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FuncFormatter
 import kwant
 import scipy
 from numba import njit
@@ -164,14 +164,14 @@ The main DED function simulating the Anderson impurity model for given parameter
         while not reset:
             NewM,nonG,select=Startrans(Npoles,np.sort(Lorentzian(omega,Gamma,Npoles,Ed,Sigma)[1]),omega,eta)
             H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
-            try: (MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]),poleDOS)
-            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): (MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
+            try:(MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]),poleDOS)
+            except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):(MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any():reset=False
             selectpT.append(select)
         Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
         if ctype=='sn':pbar.n+=1
-        else: pbar.n=int(min(Nfin))
+        else:pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
     if Edcalc=='AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(np.nan_to_num(1/(omega-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]+1j*Gamma)))/np.pi).squeeze(),Lorentzian(omega,Gamma,poles)[0],omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
@@ -224,11 +224,11 @@ The main impurity entropy DED function simulating the Anderson impurity model fo
             constr,evals=ConstraintS(ctype,H0,H,n[0],Tk)
             selectpT.append(select)
         selectpcT.append(select)
-        if ~np.any(evals): evals=scipy.linalg.eigvalsh(H.data.toarray())
+        if ~np.any(evals):evals=scipy.linalg.eigvalsh(H.data.toarray())
         Z_tot=scipy.special.logsumexp(np.outer(-evals,1/Tk),axis=0)
         if (Z_tot>2e+08).any():continue
         else:S_t,S_b,S_imp,Nfin=SAIM(evals,Z_tot,Tk,kb,E_k,constr,S_t,S_b,S_imp,Nfin)
-        if ctype=='sn': pbar.n+=1
+        if ctype=='sn':pbar.n+=1
         else:pbar.n=int(min(Nfin))
         pbar.refresh()
     pbar.close()
@@ -239,10 +239,10 @@ def GrapheneAnalyzer(imp:int,fsyst:FiniteSystem,colorbnd:int,filename:str,SizeO:
 Returns data regarding a defined graphene structure fsyst such as the corresponding Green's function."""
     if log:omega=np.concatenate((-np.logspace(np.log(bound)/np.log(base),np.log(1e-5)/np.log(base),int(np.round(SizeO/2)),base=1.5),np.logspace(np.log(1e-5)/np.log(base),np.log(bound)/np.log(base),int(np.round(SizeO/2)),base=base)))
     else:omega=np.linspace(-bound,bound,SizeO)
-    def plotsize(i): return 0.208 if i == imp else 0.125
+    def plotsize(i):return 0.208 if i == imp else 0.125
     def family_color(i):
-        if i == imp: return 'purple'
-        elif i<colorbnd: return (31/255,119/255,180/255,255/255)
+        if i == imp:return 'purple'
+        elif i<colorbnd:return (31/255,119/255,180/255,255/255)
         else: return (255/255,127/255,14/255,255/255)
     plt.ion()
     plt.rc('legend',fontsize=25)
@@ -309,7 +309,7 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
             H0,H=HamiltonianAIM(np.repeat(NewM[0][0],Nimpurities),np.tile([NewM[k+1][k+1] for k in range(len(NewM)-1)],(Nimpurities,1)),np.tile(NewM[0,1:],(Nimpurities,1)),U,Sigma,U2,J,Hn)
             try:(MBGdat,Boltzmann,Ev0),reset=Constraint(ctype,H0,H,omega,eta,c,n,Tk,np.array([ar<N for ar in Nfin]),poleDOS)
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence):(MBGdat,Boltzmann,Ev0),reset=(np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])),False
-            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([i>=500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any(): reset=False
+            if np.isnan(1/nonG-1/MBGdat+Sigma).any() or np.array([i>=1000 for i in np.real(1/nonG-1/MBGdat+Sigma)]).any() or np.array([i>=500 for i in np.abs(1/nonG-1/MBGdat+Sigma)]).any():reset=False
             selectpT.append(select)
         Nfin,AvgSigmadat,nd=Nfin+Boltzmann,AvgSigmadat+(1/nonG-1/MBGdat+Sigma)*Boltzmann[:,None],nd+np.conj(Ev0).T@sum(Hn[0]).data.tocoo()@Ev0*Boltzmann
         selectpcT.append(select)
@@ -409,7 +409,7 @@ A plot function with a logarithmic x-axis to present results from the AIM moddel
         ax1.set_xticks([1,1e-1,1e-2,1e-3,1e-4,1e-5])
         ax1.set_xlim(max(omega),xloglim)
         ax1.set_ylim(0,ymax)
-        ax1.xaxis.set_major_formatter(FuncFormatter(lambda x,pos: '$-\\mathdefault{10^{'+f'{int(np.log10(x))}'+'}}$'))
+        ax1.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x,pos: '$-\\mathdefault{10^{'+f'{int(np.log10(x))}'+'}}$'))
         ax1.plot(-omega[:len(omega)//2],Lor[:len(omega)//2],'--r',linewidth=4,label='$\\rho_0$')
         ax1.plot(-omega[:len(omega)//2],fDOS[:len(omega)//2],fDOScolor,label=labels)
         ax2.set_xlim(xloglim,max(omega))
