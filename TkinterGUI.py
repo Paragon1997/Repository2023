@@ -44,9 +44,11 @@ Writes ``.json`` file including DED simulation settings and collected data."""
     with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
 
 def polesjsonfileW(root,name):
-    data={"simtype":root.simtype,"Ntot":root.pbar.total,"Nit":root.pbar.n,"telapsed":root.pbar.format_dict["elapsed"],"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
-    "Nfin":root.Nfin,"omega":root.omega,"selectpcT":root.selectpcT}
-    with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
+    if root.pbar.n*root.Npoles>=3*root.ratio:
+        (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=root.ratio)
+        data={"simtype":root.simtype,"Ntot":root.pbar.total,"Nit":root.pbar.n,"telapsed":root.pbar.format_dict["elapsed"],"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
+        "Nfin":root.Nfin,"omega":root.omega,"omegap":root.omegap,"DOSp":root.DOSp,"selectpcT":root.selectpcT}
+        with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
 
 def savfilename(root,entry):
     """``savfilename(root,entry)``.\n
@@ -79,6 +81,9 @@ def savegraph(root,entry):
 Draws and saves DOS graph including the interacting DOS data acquired from the current DED simulation results."""
     mpl.rc('axes',edgecolor='black')
     _=savedata(root,entry)
+    {"SAIM":SAIMgraph,"poles":polesgraph}[root.simtype](root,entry)
+
+def SAIMgraph(root,entry):    
     if root.DEDargs[7]=='AS':root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]+(root.AvgSigmadat[:,int(np.round(root.DEDargs[13]/2))]/root.Nfin)[:,None]+1j*root.DEDargs[5])))/np.pi).squeeze()
     else:root.fDOS=(-np.imag(np.nan_to_num(1/(root.omega-root.AvgSigmadat/root.Nfin[:,None]-root.DEDargs[4]+1j*root.DEDargs[5])))/np.pi).squeeze()
     if entry.get().endswith(".json"):
@@ -91,6 +96,17 @@ Draws and saves DOS graph including the interacting DOS data acquired from the c
     else:
         entry.delete(0,last_index=tk.END)
         entry.insert(0,'Try again')
+
+def polesgraph(root,entry):
+    try:
+        if root.pbar.n*root.Npoles>=3*root.ratio:
+            (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=root.ratio)
+            root.Lorp=Lorentzian(root.omegap,root.DEDargs[5],root.DEDargs[1],root.DEDargs[4],root.DEDargs[3])[0]
+            if entry.get().endswith(".json"): DOSplot(root.DOSp,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
+            else:
+                entry.delete(0,last_index=tk.END)
+                entry.insert(0,'Try again')
+    except:pass
 
 def enableroot(root):
     """``enableroot(root)``.\n
@@ -255,6 +271,40 @@ Function which stops DED calculations in ``loopDED(root)`` and saves progress.""
         root.stop_button.configure(state="disabled")
         if root.pbar.n!=root.DEDargs[0]:root.start_button.configure(state="normal")
     elif not root.stopped and not root.paused:pauseDED(root)
+
+def graphwindow(root,omega,fDOS,Lor):
+    root.fig,root.axis_font=plt.figure(figsize=(9.5,7.6),dpi=50*root._get_window_scaling()),{'fontname':'Calibri','size':'19'}
+    mpl.rc('axes',edgecolor='white')
+    plt.rc('legend',fontsize=14)
+    plt.rc('font',size=19)
+    plt.rc('xtick',labelsize=17,color='white')
+    plt.rc('ytick',labelsize=17,color='white')
+    plt.xlim(min(omega),max(omega))
+    if not bool(root.graphlogy_checkbox.get()):
+        plt.gca().set_ylim(bottom=0,top=float(root.graphymax_Entry.get()))
+        plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
+    else:
+        plt.yscale('log')
+        plt.gca().set_ylim(bottom=0.0001,top=float(root.graphymax_Entry.get()))
+        plt.gca().set_xticks(np.linspace(min(omega),max(omega),int(max(omega))+int(max(omega))%2+1),minor=False)     
+    plt.xlabel("$\\omega$ [-]",**root.axis_font,color='white')
+    plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**root.axis_font,color='white')
+    plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
+    plt.plot(omega,fDOS,root.graphfDOScolor_Entry.get(),label=root.graphlegend_Entry.get())
+    plt.legend(fancybox=False).get_frame().set_edgecolor('black')
+    plt.grid()
+    plt.tight_layout()
+    root.fig.set_facecolor("none")
+    plt.gca().set_facecolor("#242424")
+    root.plot_frame.configure(fg_color="transparent")
+    root.canvas=mpl.backends.backend_tkagg.FigureCanvasTkAgg(root.fig,master=root.plot_frame)
+    root.canvas.get_tk_widget().config(bg="#242424")
+    root.canvas.draw()
+    root.canvas.get_tk_widget().grid(row=1,column=1)
+    root.plot_frame.grid_rowconfigure((0,2),weight=1)
+    root.plot_frame.grid_columnconfigure((0,2),weight=1)
+    root.plot_frame.update()
+    plt.close()        
 
 def resetDEDwindow(root):
     root.progressbar_1.set(root.pbar.n/root.DEDargs[0])
@@ -575,40 +625,10 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         """``showgraph(self)``.\n
     Class method to show graph of current results based on finished iterations."""
         try:
-            mpl.rc('axes',edgecolor='white')
-            if self.DEDargs[7]=='AS':self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]+(self.AvgSigmadat[:,int(np.round(self.DEDargs[13]/2))]/self.Nfin)[:,None]+1j*self.DEDargs[5])))/np.pi).squeeze()
-            else:self.fig,self.axis_font,self.fDOS=plt.figure(figsize=(9.5,7.6),dpi=50*self._get_window_scaling()),{'fontname':'Calibri','size':'19'},(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]-self.DEDargs[4]+1j*self.DEDargs[5])))/np.pi).squeeze()
-            plt.rc('legend',fontsize=14)
-            plt.rc('font',size=19)
-            plt.rc('xtick',labelsize=17,color='white')
-            plt.rc('ytick',labelsize=17,color='white')
-            plt.xlim(min(self.omega),max(self.omega))
-            if not bool(self.graphlogy_checkbox.get()):
-                plt.gca().set_ylim(bottom=0,top=float(self.graphymax_Entry.get()))
-                plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),2*int(max(self.omega))+1),minor=False)
-            else:
-                plt.yscale('log')
-                plt.gca().set_ylim(bottom=0.0001,top=float(self.graphymax_Entry.get()))
-                plt.gca().set_xticks(np.linspace(min(self.omega),max(self.omega),int(max(self.omega))+int(max(self.omega))%2+1),minor=False)     
-            plt.xlabel("$\\omega$ [-]",**self.axis_font,color='white')
-            plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**self.axis_font,color='white')
-            plt.plot(self.omega,self.Lor,'--r',linewidth=4,label='$\\rho_0$')
-            plt.plot(self.omega,self.fDOS,self.graphfDOScolor_Entry.get(),label=self.graphlegend_Entry.get())
-            plt.legend(fancybox=False).get_frame().set_edgecolor('black')
-            plt.grid()
-            plt.tight_layout()
-            self.fig.set_facecolor("none")
-            plt.gca().set_facecolor("#242424")
-            self.plot_frame.configure(fg_color="transparent")
-            self.canvas=mpl.backends.backend_tkagg.FigureCanvasTkAgg(self.fig,master=self.plot_frame)
-            self.canvas.get_tk_widget().config(bg="#242424")
-            self.canvas.draw()
-            self.canvas.get_tk_widget().grid(row=1,column=1)
-            self.plot_frame.grid_rowconfigure((0,2),weight=1)
-            self.plot_frame.grid_columnconfigure((0,2),weight=1)
-            self.plot_frame.update()
+            if self.DEDargs[7]=='AS':self.fDOS=(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]+(self.AvgSigmadat[:,int(np.round(self.DEDargs[13]/2))]/self.Nfin)[:,None]+1j*self.DEDargs[5])))/np.pi).squeeze()
+            else:self.fDOS=(-np.imag(np.nan_to_num(1/(self.omega-self.AvgSigmadat/self.Nfin[:,None]-self.DEDargs[4]+1j*self.DEDargs[5])))/np.pi).squeeze()
+            graphwindow(self,self.omega,self.fDOS,self.Lor)
         except:pass
-        plt.close()
 
     def resetDED(self):
         """``resetDED(self)``.\n
@@ -630,7 +650,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.simtype,self.root,self.paused,self.started,self.stopped,self.loaded,self.parainitialized,self.poleDOS,self.telapsed,self.DEDargs="poles",selfroot,False,False,False,False,False,True,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base,ymax,logy,fDOScolor]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
-        self.selectpcT,self.c,self.pbar,self.eta=[],[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
+        self.selectpcT,self.ratio,self.c,self.pbar,self.eta=[],200,[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
         (self.Hn,self.n),self.Nfin,self.Lor=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),np.zeros(len(self.DEDargs[11]),dtype='float'),Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
         DEDwindow(self,"Distributional Exact Diagonalization AIM sampled poles distribution calculator")
         self.sidebar_frame=ctk.CTkFrame(self,width=140,corner_radius=0)
@@ -678,7 +698,14 @@ Class for sampled poles distribution calculator DED simmulation window."""
                 self.entry.insert(0,'Try again')
 
     def showgraph(self):
-        pass
+        """``showgraph(self)``.\n
+    Class method to show graph of current results based on finished iterations."""
+        try:
+            if self.pbar.n*self.Npoles>=3*self.ratio:
+                (self.omegap,self.DOSp,_,_)=PolestoDOS(np.ravel(self.selectpcT),ratio=self.ratio)
+                self.Lorp=Lorentzian(self.omegap,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+                graphwindow(self,self.omegap,self.DOSp,self.Lorp)
+        except:pass
 
     def resetDED(self):
         """``resetDED(self)``.\n
@@ -692,13 +719,14 @@ Class for sampled poles distribution calculator DED simmulation window."""
             self.selectpcT,self.Nfin,self.telapsed=[],np.zeros(len(self.DEDargs[11]),dtype='float'),0
         resetDEDwindow(self)
 
-    def itpolesDED(self,reset=False):
+    def iterationDED(self,reset=False):
         while not reset:
             self.NewM,self.nonG,self.select=Startrans(self.Npoles,np.sort(Lorentzian(self.omega,self.DEDargs[5],self.Npoles,self.DEDargs[4],self.DEDargs[3])[1]),self.omega,self.eta)
             self.H0,self.H=HamiltonianAIM(np.repeat(self.NewM[0][0],self.DEDargs[8]),np.tile([self.NewM[k+1][k+1] for k in range(len(self.NewM)-1)],(self.DEDargs[8],1)),np.tile(self.NewM[0,1:],(self.DEDargs[8],1)),self.DEDargs[2],self.DEDargs[3],self.DEDargs[9],self.DEDargs[10],self.Hn)
-            try:_,reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]),self.poleDOS)
+            try:(_,self.Boltzmann,_),reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]),self.poleDOS)
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): pass
         self.selectpcT.append(self.select)
+        self.Nfin=self.Nfin+self.Boltzmann
         if self.DEDargs[6]=='sn':self.pbar.n+=1
         else:self.pbar.n=int(min(self.Nfin))
         self.pbar.refresh()

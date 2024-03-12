@@ -91,7 +91,7 @@ Determines the many body Green's function for the T>0 case given the eigen-value
 def MBGAIM(omega:NDArray[np.float64],H:Qobj,c:list[Qobj],eta:NDArray[np.float64],Tk:list[float],Boltzmann:NDArray[np.float64],poleDOS:bool,evals:NDArray[np.float64]=[],evecs:NDArray[np.complex128]=[],etaoffset:float=1e-4,posoffset:NDArray[np.int32]=np.zeros(1,dtype='int'))->tuple[NDArray[np.float64],NDArray[np.complex128]]:
     """``MBGAIM(omega,H,c,eta,Tk,Boltzmann,poleDOS,evals=[],evecs=[],etaoffset=1e-4,posoffset=np.zeros(1,dtype='int'))``.\n 
 Calculates the many body Green's function based on the Hamiltonian eigenenergies/-states for given temperatures."""
-    if poleDOS: return np.zeros(len(omega),dtype='complex_'),np.zeros(len(Tk)),np.array([])
+    if poleDOS: return np.zeros(len(omega),dtype='complex_'),Boltzmann,np.array([])
     else:
         if ~np.any(evals):evals,evecs=scipy.linalg.eigh(H.data.toarray())
         if Tk==[0]:
@@ -320,11 +320,12 @@ The main Graphene nanoribbon DED function simulating the Anderson impurity model
     if Edcalc=='AS': return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]+(AvgSigmadat[:,int(np.round(SizeO/2))]/Nfin)[:,None]))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
     else: return (Nfin.squeeze(),np.real(nd/Nfin).squeeze()),(AvgSigmadat/Nfin[:,None]).squeeze(),(-np.imag(1/(1/SPG-AvgSigmadat/Nfin[:,None]-Ed))/np.pi).squeeze(),-np.imag(SPG)/np.pi,omega,selectpT,selectpcT,pbar.format_dict["elapsed"]
 
-def PolestoDOS(select:list[NDArray[np.float64]],selectnon:list[NDArray[np.float64]],ratio:float=200,bound:float=3)->tuple[NDArray[np.float64],list[np.float64]]:
-    """``PolestoDOS(select,selectnon,ratio=200,bound=3)``.\n 
+def PolestoDOS(select:NDArray[np.float64],selectnon:NDArray[np.float64]=[],ratio:float=200,bound:float=3)->tuple[NDArray[np.float64],list[np.float64]]:
+    """``PolestoDOS(select,selectnon=np.zeros(4),ratio=200,bound=3)``.\n 
 Function that calculates distribution of selected sites based on the results of the DED algorithm."""
     bar=int(len(select)/ratio)
     bomega=np.linspace(-bound,bound,bar)
+    if selectnon==[]:selectnon=np.zeros(len(select))
     DOSp=[((bomega[i]<select)&(select<=bomega[i+1])).sum() for i in range(0,bar-1)]
     return np.linspace(-bound,bound,bar-1),DOSp/(2*bound/(bar-1)*sum(DOSp)),[np.mean(DOSp[j-1:j+1]) 
                                                          for j in range(1,bar-2)],[((bomega[i]<selectnon)&(selectnon<=bomega[i+1])).sum() 
