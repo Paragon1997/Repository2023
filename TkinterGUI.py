@@ -44,10 +44,10 @@ Writes ``.json`` file including DED simulation settings and collected data."""
     with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
 
 def polesjsonfileW(root,name):
-    if root.pbar.n*root.Npoles>=3*root.ratio:
-        (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=root.ratio)
+    if root.pbar.n*root.Npoles>=3*int(root.graphpolesratio_Entry.get()):
+        (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
         data={"simtype":root.simtype,"Ntot":root.pbar.total,"Nit":root.pbar.n,"telapsed":root.pbar.format_dict["elapsed"],"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
-        "Nfin":root.Nfin,"omega":root.omega,"omegap":root.omegap,"DOSp":root.DOSp,"selectpcT":root.selectpcT}
+        "Nfin":root.Nfin,"ratio":int(root.graphpolesratio_Entry.get()),"omega":root.omega,"omegap":root.omegap,"DOSp":root.DOSp,"selectpcT":root.selectpcT}
         with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
 
 def savfilename(root,entry):
@@ -99,8 +99,8 @@ def SAIMgraph(root,entry):
 
 def polesgraph(root,entry):
     try:
-        if root.pbar.n*root.Npoles>=3*root.ratio:
-            (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=root.ratio)
+        if root.pbar.n*root.Npoles>=3*int(root.graphpolesratio_Entry.get()):
+            (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
             root.Lorp=Lorentzian(root.omegap,root.DEDargs[5],root.DEDargs[1],root.DEDargs[4],root.DEDargs[3])[0]
             if entry.get().endswith(".json"): DOSplot(root.DOSp,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
             else:
@@ -667,6 +667,11 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
+        self.graphpolesratio_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="No. of poles per energy interval \u0394\u03C9:",anchor="w")
+        self.graphpolesratio_label.grid(row=8,column=0,padx=10,pady=(5,0))
+        self.graphpolesratio_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),placeholder_text='200')
+        self.graphpolesratio_Entry.grid(row=9,column=0,padx=10,pady=(0,0))
+        self.graphpolesratio_Entry.insert(0,str(self.ratio))
         self.protocol('WM_DELETE_WINDOW',lambda:enableroot(self))
 
     def parainit(self):
@@ -688,8 +693,10 @@ Class for sampled poles distribution calculator DED simmulation window."""
             try:
                 self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
                 if self.data["simtype"]==self.simtype:
-                    self.Nfin,self.omega,self.selectpcT=np.array(self.data["Nfin"]),np.array(self.data["omega"]),self.data["selectpcT"]
+                    self.Nfin,self.omega,self.selectpcT,self.ratio=np.array(self.data["Nfin"]),np.array(self.data["omega"]),self.data["selectpcT"],self.data["ratio"]
                     paraloader(self)
+                    self.graphpolesratio_Entry.delete(0,last_index=tk.END)
+                    self.graphpolesratio_Entry.insert(0,str(self.ratio))
                 else:
                     self.entry.delete(0,last_index=tk.END)
                     self.entry.insert(0,'Try again')             
@@ -701,8 +708,8 @@ Class for sampled poles distribution calculator DED simmulation window."""
         """``showgraph(self)``.\n
     Class method to show graph of current results based on finished iterations."""
         try:
-            if self.pbar.n*self.Npoles>=3*self.ratio:
-                (self.omegap,self.DOSp,_,_)=PolestoDOS(np.ravel(self.selectpcT),ratio=self.ratio)
+            if self.pbar.n*self.Npoles>=3*int(self.graphpolesratio_Entry.get()):
+                (self.omegap,self.DOSp,_,_)=PolestoDOS(np.ravel(self.selectpcT),ratio=int(self.graphpolesratio_Entry.get()))
                 self.Lorp=Lorentzian(self.omegap,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
                 graphwindow(self,self.omegap,self.DOSp,self.Lorp)
         except:pass
