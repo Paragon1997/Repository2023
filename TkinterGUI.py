@@ -102,7 +102,7 @@ def polesgraph(root,entry):
         if root.pbar.n*root.Npoles>=3*int(root.graphpolesratio_Entry.get()):
             (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
             root.Lorp=Lorentzian(root.omegap,root.DEDargs[5],root.DEDargs[1],root.DEDargs[4],root.DEDargs[3])[0]
-            if entry.get().endswith(".json"): DOSplot(root.DOSp,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
+            if entry.get().endswith(".json"):DOSplot(root.DOSp,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
             else:
                 entry.delete(0,last_index=tk.END)
                 entry.insert(0,'Try again')
@@ -124,8 +124,8 @@ Function to choose save file location for a DED data file in File Explorer."""
     root.savefile=ctk.filedialog.asksaveasfilename(initialdir="",title="Save DED Data JSON File as",filetypes=[('JSON files','*.json')])
     root.root.lower()
     if root.savefile:
-        root.entry_2.delete(0,last_index=tk.END)
         if not root.savefile.endswith(".json"):root.savefile+=".json"
+        root.entry_2.delete(0,last_index=tk.END)
         root.entry_2.insert(0,root.savefile)
         _=savedata(root,root.entry_2)
 
@@ -594,18 +594,17 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
     def fileloader(self):
         """``fileloader(self)``.\n
     Class method to load ``.json`` file and save data and settings from that particular simulation session to utilize for current session."""
-        if not self.started:
-            try:
-                self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
-                if self.data["simtype"]==self.simtype:
-                    self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
-                    paraloader(self)
-                else:
-                    self.entry.delete(0,last_index=tk.END)
-                    self.entry.insert(0,'Try again')
-            except IOError or FileNotFoundError:
+        try:
+            self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
+            if self.data["simtype"]==self.simtype:
+                self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
+                paraloader(self)
+            else:
                 self.entry.delete(0,last_index=tk.END)
                 self.entry.insert(0,'Try again')
+        except IOError or FileNotFoundError:
+            self.entry.delete(0,last_index=tk.END)
+            self.entry.insert(0,'Try again')
 
     def iterationDED(self,reset=False):
         """``iterationDED(self,reset=False)``.\n
@@ -689,20 +688,19 @@ Class for sampled poles distribution calculator DED simmulation window."""
     def fileloader(self):
         """``fileloader(self)``.\n
     Class method to load ``.json`` file and save data and settings from that particular simulation session to utilize for current session."""
-        if not self.started:
-            try:
-                self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
-                if self.data["simtype"]==self.simtype:
-                    self.Nfin,self.omega,self.selectpcT,self.ratio=np.array(self.data["Nfin"]),np.array(self.data["omega"]),self.data["selectpcT"],self.data["ratio"]
-                    paraloader(self)
-                    self.graphpolesratio_Entry.delete(0,last_index=tk.END)
-                    self.graphpolesratio_Entry.insert(0,str(self.ratio))
-                else:
-                    self.entry.delete(0,last_index=tk.END)
-                    self.entry.insert(0,'Try again')             
-            except IOError or FileNotFoundError:
+        try:
+            self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
+            if self.data["simtype"]==self.simtype:
+                self.Nfin,self.omega,self.selectpcT,self.ratio=np.array(self.data["Nfin"]),np.array(self.data["omega"]),self.data["selectpcT"],self.data["ratio"]
+                paraloader(self)
+                self.graphpolesratio_Entry.delete(0,last_index=tk.END)
+                self.graphpolesratio_Entry.insert(0,str(self.ratio))
+            else:
                 self.entry.delete(0,last_index=tk.END)
-                self.entry.insert(0,'Try again')
+                self.entry.insert(0,'Try again')             
+        except IOError or FileNotFoundError:
+            self.entry.delete(0,last_index=tk.END)
+            self.entry.insert(0,'Try again')
 
     def showgraph(self):
         """``showgraph(self)``.\n
