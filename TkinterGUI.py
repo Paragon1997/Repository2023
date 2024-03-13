@@ -337,10 +337,10 @@ def resetDEDwindow(root):
 class ProgressBar(ctk.CTkProgressBar):
     """``ProgressBar(ctk.CTkProgressBar)``.\n
 Custom progressbar with current (and total) number of iterations displayed on the bar."""
-    def __init__(self,itnum,Total,*args,**kwargs):
+    def __init__(self,root,itnum,Total,*args,**kwargs):
         self.itnum,self.Total=itnum,Total
         super().__init__(*args,**kwargs)
-        self._canvas.create_text(0,0,text=f"{itnum}/{Total}",fill="white",font=14,anchor="c",tags="progress_text")
+        self._canvas.create_text(0,0,text=f"{itnum}/{Total}",fill="white",font=10*root._get_window_scaling(),anchor="c",tags="progress_text")
 
     def _update_dimensions_event(self,event):
         super()._update_dimensions_event(event)
@@ -409,7 +409,7 @@ def parasidebar(root,frame,parainit):
 
 def progressframe(root,frame):
     frame.grid_columnconfigure((0,1,2,3,4,5),weight=1)
-    root.progressbar_1=ProgressBar(master=frame,variable=ctk.IntVar(value=0),itnum=root.pbar.n,Total=root.pbar.total,height=30)
+    root.progressbar_1=ProgressBar(master=frame,variable=ctk.IntVar(value=0),root=root,itnum=root.pbar.n,Total=root.pbar.total,height=30)
     root.progressbar_1.grid(row=0,column=0,columnspan=6,padx=20,pady=(5,0),sticky="nsew")
     root.start_button=ctk.CTkButton(frame,text="Start",command=lambda:startDED(root))
     root.start_button.grid(row=1,column=0,padx=4,pady=(5,10))
@@ -503,19 +503,20 @@ def settingstab(root,frame):
     root.graphfDOScolor_Entry.insert(0,str(root.DEDargs[20]))
 
 def fileentrytab(root,frame):
-    frame.grid_columnconfigure((2,3),weight=1)
-    root.entry=ctk.CTkEntry(frame,width=554,placeholder_text="C:\\")
-    root.entry.grid(row=0,column=0,columnspan=2,padx=(20,0),pady=(10,5),sticky="nsew")
+    frame.grid_columnconfigure(0,weight=1) 
+    frame.grid_columnconfigure((1,2),weight=0)
+    root.entry=ctk.CTkEntry(frame,width=560,placeholder_text="C:\\")
+    root.entry.grid(row=0,column=0,columnspan=1,padx=(20,20),pady=(10,5),sticky='w')
     root.openfile_button=ctk.CTkButton(frame,text="Open file",fg_color="transparent",width=100,border_width=2,text_color=("gray10","#DCE4EE"),command=lambda:openfile(root))
-    root.openfile_button.grid(row=0,column=2,padx=(20,5),pady=(10,5),sticky="w")
+    root.openfile_button.grid(row=0,column=1,padx=(0,5),pady=(10,5),sticky='ew')
     root.main_button=ctk.CTkButton(frame,text="Submit file to load",fg_color="transparent",width=150,border_width=2,text_color=("gray10","#DCE4EE"),command=root.fileloader)
-    root.main_button.grid(row=0,column=3,padx=(0,20),pady=(10,5),sticky="e")
-    root.entry_2=ctk.CTkEntry(frame,width=554,placeholder_text="example.json")
-    root.entry_2.grid(row=1,column=0,columnspan=2,padx=(20,0),pady=(5,10),sticky="nsew")
+    root.main_button.grid(row=0,column=2,padx=(5,0),pady=(10,5),sticky='e')
+    root.entry_2=ctk.CTkEntry(frame,width=560,placeholder_text="example.json")
+    root.entry_2.grid(row=1,column=0,columnspan=1,padx=(20,20),pady=(5,10),sticky='w')
     root.saveasfile_button=ctk.CTkButton(frame,text="Save as file",fg_color="transparent",width=100,border_width=2,text_color=("gray10","#DCE4EE"),command=lambda:saveasfile(root))
-    root.saveasfile_button.grid(row=1,column=2,padx=(20,5),pady=(5,10),sticky="w")
+    root.saveasfile_button.grid(row=1,column=1,padx=(0,5),pady=(5,10),sticky='ew')
     root.main_button_2=ctk.CTkButton(frame,text="Submit file to save",fg_color="transparent",width=150,border_width=2,text_color=("gray10","#DCE4EE"),command=lambda:savfilename(root,root.entry_2))
-    root.main_button_2.grid(row=1,column=3,padx=(0,20),pady=(5,10),sticky='e')
+    root.main_button_2.grid(row=1,column=2,padx=(5,0),pady=(5,10),sticky='e')
 
 class mainApp(ctk.CTk):
     """``mainApp(ctk.CTk)``.\n
@@ -572,7 +573,7 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         self.slider_progressbar_frame.grid(row=1,column=1,columnspan=2,padx=(20,0),pady=(5,0),sticky="nsew")
         progressframe(self,self.slider_progressbar_frame)
         self.file_entry_frame=ctk.CTkFrame(self,height=90,fg_color="transparent")
-        self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=4,sticky="nsew")
+        self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=4,padx=(0,20),sticky="nsew")
         fileentrytab(self,self.file_entry_frame)
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
@@ -649,7 +650,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.simtype,self.root,self.paused,self.started,self.stopped,self.loaded,self.parainitialized,self.poleDOS,self.telapsed,self.DEDargs="poles",selfroot,False,False,False,False,False,True,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base,ymax,logy,fDOScolor]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
-        self.selectpcT,self.ratio,self.c,self.pbar,self.eta=[],1000,[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
+        self.selectpcT,self.ratio,self.c,self.pbar,self.eta=[],200,[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
         (self.Hn,self.n),self.Nfin,self.Lor=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),np.zeros(len(self.DEDargs[11]),dtype='float'),Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
         DEDwindow(self,"Distributional Exact Diagonalization AIM sampled poles distribution calculator")
         self.sidebar_frame=ctk.CTkFrame(self,width=140,corner_radius=0)
@@ -661,7 +662,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.slider_progressbar_frame.grid(row=1,column=1,columnspan=2,padx=(20,0),pady=(5,0),sticky="nsew")
         progressframe(self,self.slider_progressbar_frame)
         self.file_entry_frame=ctk.CTkFrame(self,height=90,fg_color="transparent")
-        self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=4,sticky="nsew")
+        self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=4,padx=(0,20),sticky="nsew")
         fileentrytab(self,self.file_entry_frame)
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
