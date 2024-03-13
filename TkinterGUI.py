@@ -502,7 +502,7 @@ def settingstab(root,frame):
     root.graphfDOScolor_Entry.grid(row=7,column=0,padx=10,pady=(0,0))
     root.graphfDOScolor_Entry.insert(0,str(root.DEDargs[20]))
 
-def fileentrytab(root,frame,brow,bcol):
+def fileentrytab(root,frame,brow=3,bcol=3):
     frame.grid_columnconfigure((0,1),weight=1)
     frame.grid_columnconfigure((2,3),weight=0)
     root.entry=ctk.CTkEntry(frame,placeholder_text="C:\\")
@@ -576,7 +576,7 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         progressframe(self,self.slider_progressbar_frame)
         self.file_entry_frame=ctk.CTkFrame(self,height=90,fg_color="transparent")
         self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=2,padx=(20,0),sticky="nsew")
-        fileentrytab(self,self.file_entry_frame,3,3)
+        fileentrytab(self,self.file_entry_frame)
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
@@ -665,7 +665,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
         progressframe(self,self.slider_progressbar_frame)
         self.file_entry_frame=ctk.CTkFrame(self,height=90,fg_color="transparent")
         self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=2,padx=(20,0),sticky="nsew")
-        fileentrytab(self,self.file_entry_frame,3,3)
+        fileentrytab(self,self.file_entry_frame)
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
