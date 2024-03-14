@@ -339,9 +339,9 @@ class ProgressBar(ctk.CTkProgressBar):
     """``ProgressBar(ctk.CTkProgressBar)``.\n
 Custom progressbar with current (and total) number of iterations displayed on the bar."""
     def __init__(self,root,itnum,Total,*args,**kwargs):
-        self.itnum,self.Total,self.root=itnum,Total,root
+        self.itnum,self.Total=itnum,Total
         super().__init__(*args,**kwargs)
-        self._canvas.create_text(0,0,text=f"{itnum}/{Total}",fill="white",font="TkDefaultFont %i"%int(12*self.root._get_window_scaling()),anchor="c",tags="progress_text")
+        self._canvas.create_text(0,0,text=f"{self.itnum}/{self.Total}",fill="white",font="TkDefaultFont %i"%int(12*root._get_window_scaling()),anchor="c",tags="progress_text")
 
     def _update_dimensions_event(self,event):
         super()._update_dimensions_event(event)
