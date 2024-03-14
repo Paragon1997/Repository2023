@@ -101,7 +101,7 @@ def SAIMgraph(root,entry):
 def polesgraph(root,entry):
     try:
         if root.pbar.n*root.Npoles>=3*int(root.graphpolesratio_Entry.get()):
-            (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
+            (root.omegap,root.DOSp,*_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
             root.Lorp=Lorentzian(root.omegap,root.DEDargs[5],root.DEDargs[1],root.DEDargs[4],root.DEDargs[3])[0]
             if entry.get().endswith(".json"):DOSplot(root.DOSp,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
             else:
@@ -711,7 +711,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
     Class method to show graph of current results based on finished iterations."""
         try:
             if self.pbar.n*self.Npoles>=3*int(self.graphpolesratio_Entry.get()):
-                (self.omegap,self.DOSp,_,_)=PolestoDOS(np.ravel(self.selectpcT),ratio=int(self.graphpolesratio_Entry.get()))
+                (self.omegap,self.DOSp,*_)=PolestoDOS(np.ravel(self.selectpcT),ratio=int(self.graphpolesratio_Entry.get()))
                 self.Lorp=Lorentzian(self.omegap,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
                 graphwindow(self,self.omegap,self.DOSp,self.Lorp)
         except:pass
