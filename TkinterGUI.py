@@ -685,7 +685,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
             if not self.loaded:
                 if self.DEDargs[16]:self.ratio,self.omega=int(self.polesratio_Entry.get()),np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17])))
                 else:self.ratio,self.omega=int(self.polesratio_Entry.get()),np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13])
-                self.omegaintrv,self.eta,self.Nfin,self.Npoles,self.c,self.Lor=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio)),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],np.zeros(len(self.DEDargs[11]),dtype='float'),int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+                self.omegaintrv,self.eta,self.Nfin,self.Npoles,self.c,self.Lor=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio)+1),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],np.zeros(len(self.DEDargs[11]),dtype='float'),int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
                 self.omegap,self.DOSp,(self.Hn,self.n)=np.array([(self.omegaintrv[i]+self.omegaintrv[i+1])/2 for i in range(len(self.omegaintrv)-1)]),np.zeros(len(self.omegaintrv)-1,dtype='int_'),Operators(self.c,self.DEDargs[8],self.DEDargs[1])
         except:pass
 
@@ -697,7 +697,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
             if self.data["simtype"]==self.simtype:
                 self.Nfin,self.omega,self.omegap,self.DOSp,self.ratio,self.corrfactor=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["omegap"]),np.array(self.data["DOSp"]),self.data["ratio"],self.data["corrfactor"]
                 paraloader(self)
-                self.omegaintrv=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio))
+                self.omegaintrv=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio)+1)
                 self.polesratio_Entry.delete(0,last_index=tk.END)
                 self.polesratio_Entry.insert(0,str(self.ratio))
                 self.graphcorrfactor_Entry.delete(0,last_index=tk.END)
