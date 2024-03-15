@@ -27,13 +27,6 @@ Encodes Numpy array for ``json.dumps()``."""
     def default(self,obj):
         if isinstance(obj,np.ndarray): return obj.tolist()
         return json.JSONEncoder.default(self,obj)
-    
-def JSONfileR(name,classname):
-    """``JSONfileR(name,classname)``.\n
-Loads ``.json`` file to collect DED data from previous simulation session."""
-    data=json.load(open(name))
-    if classname=="SAIMWINDOW" and data["simtype"]=="SAIM":data["AvgSigmadat"],data["nd"]=np.array(data["AvgSigmadat"],dtype=object).astype(np.complex128),np.array(data["nd"],dtype=object).astype(np.complex128)
-    return data
 
 def AvgSigmajsonfileW(root,name):
     """``AvgSigmajsonfileW(root,name)``.\n
@@ -45,11 +38,12 @@ Writes ``.json`` file including DED simulation settings and collected data."""
     with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
 
 def polesjsonfileW(root,name):
-    if root.pbar.n*root.Npoles>=3*int(root.graphpolesratio_Entry.get()):
-        (root.omegap,root.DOSp,_,_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
+    try:
+        root.fDOS=polesfDOS(root.DOSp,root.DEDargs[14],float(root.graphcorrfactor_Entry.get()))
         data={"simtype":root.simtype,"Ntot":root.pbar.total,"Nit":root.pbar.n,"telapsed":root.pbar.format_dict["elapsed"],"poles":root.DEDargs[1],"U":root.DEDargs[2],"Sigma":root.DEDargs[3],"Ed":root.DEDargs[4],"Gamma":root.DEDargs[5],"ctype":root.DEDargs[6],"Edcalc":root.DEDargs[7],"Nimpurities":root.DEDargs[8],"U2":root.DEDargs[9],"J":root.DEDargs[10],"Tk":root.DEDargs[11],"etaco":root.DEDargs[12],"SizeO":root.DEDargs[13],"bound":root.DEDargs[14],"posb":root.DEDargs[15],"log":root.DEDargs[16],"base":root.DEDargs[17],
-        "Nfin":root.Nfin,"ratio":int(root.graphpolesratio_Entry.get()),"omega":root.omega,"omegap":root.omegap,"DOSp":root.DOSp,"selectpcT":root.selectpcT}
+        "Nfin":root.Nfin,"ratio":int(root.polesratio_Entry.get()),"corrfactor":float(root.graphcorrfactor_Entry.get()),"omega":root.omega,"omegap":root.omegap,"fDOS":root.fDOS,"DOSp":root.DOSp}
         with open(name,"w") as outfile: outfile.write(json.dumps(data,cls=NumpyArrayEncoder))
+    except ValueError:pass
 
 def savfilename(root,entry):
     """``savfilename(root,entry)``.\n
@@ -100,13 +94,12 @@ def SAIMgraph(root,entry):
 
 def polesgraph(root,entry):
     try:
-        if root.pbar.n*root.Npoles>=3*int(root.graphpolesratio_Entry.get()):
-            (root.omegap,root.DOSp,*_)=PolestoDOS(np.ravel(root.selectpcT),ratio=int(root.graphpolesratio_Entry.get()))
-            root.Lorp=Lorentzian(root.omegap,root.DEDargs[5],root.DEDargs[1],root.DEDargs[4],root.DEDargs[3])[0]
-            if entry.get().endswith(".json"):DOSplot(root.DOSp,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()))
-            else:
-                entry.delete(0,last_index=tk.END)
-                entry.insert(0,'Try again')
+        root.fDOS=polesfDOS(root.DOSp,root.DEDargs[14],float(root.graphcorrfactor_Entry.get()))
+        root.Lorp=Lorentzian(root.omegap,root.DEDargs[5],root.DEDargs[1],root.DEDargs[4],root.DEDargs[3])[0]
+        if entry.get().endswith(".json"):DOSplot(root.fDOS,root.Lorp,root.omegap,entry.get().replace(".json",""),root.graphlegend_Entry.get(),log=bool(root.graphlogy_checkbox.get()),ymax=float(root.graphymax_Entry.get()),bound=root.DEDargs[14])
+        else:
+            entry.delete(0,last_index=tk.END)
+            entry.insert(0,'Try again')
     except:pass
 
 def enableroot(root):
@@ -280,14 +273,14 @@ def graphwindow(root,omega,fDOS,Lor):
     plt.rc('font',size=19)
     plt.rc('xtick',labelsize=17,color='white')
     plt.rc('ytick',labelsize=17,color='white')
-    plt.xlim(min(omega),max(omega))
+    plt.gca().set_xlim(xmin=-root.DEDargs[14],xmax=root.DEDargs[14])
     if not bool(root.graphlogy_checkbox.get()):
         plt.gca().set_ylim(bottom=0,top=float(root.graphymax_Entry.get()))
-        plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
+        plt.gca().set_xticks(np.linspace(-root.DEDargs[14],root.DEDargs[14],2*int(root.DEDargs[14])+1),minor=False)
     else:
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=float(root.graphymax_Entry.get()))
-        plt.gca().set_xticks(np.linspace(min(omega),max(omega),int(max(omega))+int(max(omega))%2+1),minor=False)     
+        plt.gca().set_xticks(np.linspace(-root.DEDargs[14],root.DEDargs[14],int(root.DEDargs[14])+int(root.DEDargs[14])%2+1),minor=False)     
     plt.xlabel("$\\omega$ [-]",**root.axis_font,color='white')
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**root.axis_font,color='white')
     plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
@@ -310,30 +303,31 @@ def graphwindow(root,omega,fDOS,Lor):
 def resetDEDwindow(root):
     root.progressbar_1.set(root.pbar.n/root.DEDargs[0])
     root.pbar.refresh()
-    root.paused,root.started,root.stopped,root.loaded,root.parainitialized=False,False,True,False,False
+    root.paused,root.started,root.stopped,root.parainitialized=False,False,True,False
     root.start_button.configure(state="normal")
     root.pause_button.configure(state="disabled")
     root.stop_button.configure(state="disabled")
     root.reset_button.configure(state="disabled")
     root.main_button.configure(state="normal")
     root.N_Entry.configure(state="normal")
-    root.U_Entry.configure(state="normal")
-    root.Sigma_Entry.configure(state="normal")
-    root.Ed_Entry.configure(state="normal")
-    root.Gamma_Entry.configure(state="normal")
-    root.scaling_optionemenu.configure(state="normal")
-    root.Tk_Entry.configure(state="normal")
     root.sidebar_button_3.configure(state="normal")
-    root.eta_Entry.configure(state="normal")
-    root.SizeO_Entry.configure(state="normal")
-    root.bound_Entry.configure(state="normal")
-    root.ctype_optionemenu.configure(state="normal")
-    root.log_checkbox.configure(state="normal")
-    root.base_Entry.configure(state="normal")
-    root.Edcalc_optionemenu.configure(state="normal")
-    root.Nimpurities_optionemenu.configure(state="normal")
-    root.U2_Entry.configure(state="normal")
-    root.J_Entry.configure(state="normal")
+    if not root.loaded:
+        root.U_Entry.configure(state="normal")
+        root.Sigma_Entry.configure(state="normal")
+        root.Ed_Entry.configure(state="normal")
+        root.Gamma_Entry.configure(state="normal")
+        root.scaling_optionemenu.configure(state="normal")
+        root.Tk_Entry.configure(state="normal")
+        root.eta_Entry.configure(state="normal")
+        root.SizeO_Entry.configure(state="normal")
+        root.bound_Entry.configure(state="normal")
+        root.ctype_optionemenu.configure(state="normal")
+        root.log_checkbox.configure(state="normal")
+        root.base_Entry.configure(state="normal")
+        root.Edcalc_optionemenu.configure(state="normal")
+        root.Nimpurities_optionemenu.configure(state="normal")
+        root.U2_Entry.configure(state="normal")
+        root.J_Entry.configure(state="normal")
 
 class ProgressBar(ctk.CTkProgressBar):
     """``ProgressBar(ctk.CTkProgressBar)``.\n
@@ -599,9 +593,9 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         """``fileloader(self)``.\n
     Class method to load ``.json`` file and save data and settings from that particular simulation session to utilize for current session."""
         try:
-            self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
+            self.data=json.load(open(self.entry.get()))
             if self.data["simtype"]==self.simtype:
-                self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128)
+                self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(np.array(self.data["AvgSigmadat"],dtype='complex_')*np.array(self.data["Nfin"]),dtype='complex_').squeeze(),np.array(np.array(self.data["nd"],dtype='complex_')*np.array(self.data["Nfin"]),dtype='complex_')
                 paraloader(self)
             else:
                 self.entry.delete(0,last_index=tk.END)
@@ -650,11 +644,11 @@ class polesWINDOW(ctk.CTkToplevel):
 Class for sampled poles distribution calculator DED simmulation window."""
     def __init__(self,selfroot,N=200000,poles=4,U=3,Sigma=3/2,Ed=-3/2,Gamma=0.3,SizeO=1001,etaco=[0.02,1e-39],ctype='n',Edcalc='',bound=3,Tk=[0],Nimpurities=1,U2=0,J=0,posb=1,log=False,base=1.5,ymax=1.2,logy=False,fDOScolor='b',*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.simtype,self.root,self.paused,self.started,self.stopped,self.loaded,self.parainitialized,self.poleDOS,self.telapsed,self.DEDargs="poles",selfroot,False,False,False,False,False,True,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base,ymax,logy,fDOScolor]
+        self.simtype,self.root,self.paused,self.started,self.stopped,self.loaded,self.parainitialized,self.poleDOS,self.ratio,self.corrfactor,self.telapsed,self.DEDargs="poles",selfroot,False,False,False,False,False,True,200,1,0,[N,poles,U,Sigma,Ed,Gamma,ctype,Edcalc,Nimpurities,U2,J,Tk,etaco,SizeO,bound,posb,log,base,ymax,logy,fDOScolor]
         if self.DEDargs[16]:self.omega,self.Npoles=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]))),int(self.DEDargs[1]/self.DEDargs[8])
         else:self.omega,self.Npoles=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13]),int(self.DEDargs[1]/self.DEDargs[8])
-        self.selectpcT,self.ratio,self.c,self.pbar,self.eta=[],200,[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
-        (self.Hn,self.n),self.Nfin,self.Lor=Operators(self.c,self.DEDargs[8],self.DEDargs[1]),np.zeros(len(self.DEDargs[11]),dtype='float'),Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+        self.omegaintrv,self.c,self.pbar,self.eta=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio)),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],trange(self.DEDargs[0],position=self.DEDargs[15],leave=False,desc='Iterations',bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1]
+        self.omegap,self.DOSp,(self.Hn,self.n),self.Nfin,self.Lor=np.array([(self.omegaintrv[i]+self.omegaintrv[i+1])/2 for i in range(len(self.omegaintrv)-1)]),np.zeros(len(self.omegaintrv)-1,dtype='int_'),Operators(self.c,self.DEDargs[8],self.DEDargs[1]),np.zeros(len(self.DEDargs[11]),dtype='float'),Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
         DEDwindow(self,"Distributional Exact Diagonalization AIM sampled poles distribution calculator")
         self.sidebar_frame=ctk.CTkFrame(self,width=140,corner_radius=0)
         self.sidebar_frame.grid(row=0,column=0,rowspan=5,sticky="nsew")
@@ -670,11 +664,16 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
-        self.graphpolesratio_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="No. of poles per energy interval \u0394\u03C9:",anchor="w")
-        self.graphpolesratio_label.grid(row=8,column=0,padx=10,pady=(5,0))
-        self.graphpolesratio_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),placeholder_text='200')
-        self.graphpolesratio_Entry.grid(row=9,column=0,padx=10,pady=(0,0))
-        self.graphpolesratio_Entry.insert(0,str(self.ratio))
+        self.polesratio_label=ctk.CTkLabel(self.scrollable_tab,text="No. of poles per energy interval \u0394\u03C9:",anchor="w")
+        self.polesratio_label.grid(row=13,column=0,padx=10,pady=(5,0))
+        self.polesratio_Entry=ctk.CTkEntry(self.scrollable_tab,placeholder_text='200')
+        self.polesratio_Entry.grid(row=14,column=0,padx=10,pady=(0,0))
+        self.polesratio_Entry.insert(0,str(self.ratio))
+        self.graphcorrfactor_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Correction factor pole Distr.:",anchor="w")
+        self.graphcorrfactor_label.grid(row=8,column=0,padx=10,pady=(5,0))
+        self.graphcorrfactor_Entry=ctk.CTkEntry(self.settings_tab.tab("Graph"),placeholder_text='1')
+        self.graphcorrfactor_Entry.grid(row=9,column=0,padx=10,pady=(0,0))
+        self.graphcorrfactor_Entry.insert(0,str(self.corrfactor))
         self.protocol('WM_DELETE_WINDOW',lambda:enableroot(self))
 
     def parainit(self):
@@ -682,23 +681,28 @@ Class for sampled poles distribution calculator DED simmulation window."""
     Class method to save input parameters of DED from inputs in the ``polesWINDOW(ctk.CTkToplevel)`` window."""
         try:
             saveparameters(self)
+            self.polesratio_Entry.configure(state="disabled")
             if not self.loaded:
-                if self.DEDargs[16]:self.omega=np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17])))
-                else:self.omega=np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13])
-                self.eta,self.Nfin,self.Npoles,self.c,self.Lor=self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],np.zeros(len(self.DEDargs[11]),dtype='float'),int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
-                (self.Hn,self.n)=Operators(self.c,self.DEDargs[8],self.DEDargs[1])
+                if self.DEDargs[16]:self.ratio,self.omega=int(self.polesratio_Entry.get()),np.concatenate((-np.logspace(np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),np.log(1e-5)/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17]),np.logspace(np.log(1e-5)/np.log(self.DEDargs[17]),np.log(self.DEDargs[14])/np.log(self.DEDargs[17]),int(np.round(self.DEDargs[13]/2)),base=self.DEDargs[17])))
+                else:self.ratio,self.omega=int(self.polesratio_Entry.get()),np.linspace(-self.DEDargs[14],self.DEDargs[14],self.DEDargs[13])
+                self.omegaintrv,self.eta,self.Nfin,self.Npoles,self.c,self.Lor=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio)),self.DEDargs[12][0]*abs(self.omega)+self.DEDargs[12][1],np.zeros(len(self.DEDargs[11]),dtype='float'),int(self.DEDargs[1]/self.DEDargs[8]),[Jordan_wigner_transform(i,2*self.DEDargs[1]) for i in range(2*self.DEDargs[1])],Lorentzian(self.omega,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+                self.omegap,self.DOSp,(self.Hn,self.n)=np.array([(self.omegaintrv[i]+self.omegaintrv[i+1])/2 for i in range(len(self.omegaintrv)-1)]),np.zeros(len(self.omegaintrv)-1,dtype='int_'),Operators(self.c,self.DEDargs[8],self.DEDargs[1])
         except:pass
 
     def fileloader(self):
         """``fileloader(self)``.\n
     Class method to load ``.json`` file and save data and settings from that particular simulation session to utilize for current session."""
         try:
-            self.data=JSONfileR(self.entry.get(),self.__class__.__name__)
+            self.data=json.load(open(self.entry.get()))
             if self.data["simtype"]==self.simtype:
-                self.Nfin,self.omega,self.selectpcT,self.ratio=np.array(self.data["Nfin"]),np.array(self.data["omega"]),self.data["selectpcT"],self.data["ratio"]
+                self.Nfin,self.omega,self.omegap,self.DOSp,self.ratio,self.corrfactor=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(self.data["omegap"]),np.array(self.data["DOSp"]),self.data["ratio"],self.data["corrfactor"]
                 paraloader(self)
-                self.graphpolesratio_Entry.delete(0,last_index=tk.END)
-                self.graphpolesratio_Entry.insert(0,str(self.ratio))
+                self.omegaintrv=np.linspace(-self.DEDargs[14],self.DEDargs[14],int(self.DEDargs[0]*self.DEDargs[1]/self.ratio))
+                self.polesratio_Entry.delete(0,last_index=tk.END)
+                self.polesratio_Entry.insert(0,str(self.ratio))
+                self.graphcorrfactor_Entry.delete(0,last_index=tk.END)
+                self.graphcorrfactor_Entry.insert(0,str(self.corrfactor))
+                self.polesratio_Entry.configure(state="disabled")
             else:
                 self.entry.delete(0,last_index=tk.END)
                 self.entry.insert(0,'Try again')             
@@ -710,10 +714,8 @@ Class for sampled poles distribution calculator DED simmulation window."""
         """``showgraph(self)``.\n
     Class method to show graph of current results based on finished iterations."""
         try:
-            if self.pbar.n*self.Npoles>=3*int(self.graphpolesratio_Entry.get()):
-                (self.omegap,self.DOSp,*_)=PolestoDOS(np.ravel(self.selectpcT),ratio=int(self.graphpolesratio_Entry.get()))
-                self.Lorp=Lorentzian(self.omegap,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
-                graphwindow(self,self.omegap,self.DOSp,self.Lorp)
+            self.fDOS,self.Lorp=polesfDOS(self.DOSp,self.DEDargs[14],float(self.graphcorrfactor_Entry.get())),Lorentzian(self.omegap,self.DEDargs[5],self.DEDargs[1],self.DEDargs[4],self.DEDargs[3])[0]
+            graphwindow(self,self.omegap,self.fDOS,self.Lorp)
         except:pass
 
     def resetDED(self):
@@ -722,10 +724,11 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.pbar.reset()
         if self.loaded:
             self.progressbar_1.itnum=self.pbar.n=self.data["Nit"]
-            self.Nfin,self.selectpcT,self.telapsed=np.array(self.data["Nfin"]),self.data["selectpcT"],self.data["telapsed"]
+            self.Nfin,self.DOSp,self.telapsed=np.array(self.data["Nfin"]),self.data["DOSp"],self.data["telapsed"]
         else: 
             self.progressbar_1.itnum=self.pbar.n=0
-            self.selectpcT,self.Nfin,self.telapsed=[],np.zeros(len(self.DEDargs[11]),dtype='float'),0
+            self.Nfin,self.DOSp,self.telapsed=np.zeros(len(self.DEDargs[11]),dtype='float'),np.zeros(len(self.omegaintrv)-1,dtype='int_'),0
+            self.polesratio_Entry.configure(state="normal")
         resetDEDwindow(self)
 
     def iterationDED(self,reset=False):
@@ -734,8 +737,7 @@ Class for sampled poles distribution calculator DED simmulation window."""
             self.H0,self.H=HamiltonianAIM(np.repeat(self.NewM[0][0],self.DEDargs[8]),np.tile([self.NewM[k+1][k+1] for k in range(len(self.NewM)-1)],(self.DEDargs[8],1)),np.tile(self.NewM[0,1:],(self.DEDargs[8],1)),self.DEDargs[2],self.DEDargs[3],self.DEDargs[9],self.DEDargs[10],self.Hn)
             try:(_,self.Boltzmann,_),reset=Constraint(self.DEDargs[6],self.H0,self.H,self.omega,self.eta,self.c,self.n,self.DEDargs[11],np.array([ar<self.DEDargs[0] for ar in self.Nfin]),self.poleDOS)
             except (np.linalg.LinAlgError,ValueError,scipy.sparse.linalg.ArpackNoConvergence): pass
-        self.selectpcT.append(self.select)
-        self.Nfin=self.Nfin+self.Boltzmann
+        self.Nfin,self.DOSp=self.Nfin+self.Boltzmann,self.DOSp+[((self.omegaintrv[i]<=self.select)&(self.select<self.omegaintrv[i+1])).sum() for i in range(0,len(self.omegaintrv)-1)]
         if self.DEDargs[6]=='sn':self.pbar.n+=1
         else:self.pbar.n=int(min(self.Nfin))
         self.pbar.refresh()

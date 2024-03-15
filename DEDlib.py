@@ -331,22 +331,28 @@ Function that calculates distribution of selected sites based on the results of 
                                                          for j in range(1,bar-2)],[((bomega[i]<selectnon)&(selectnon<=bomega[i+1])).sum() 
                                                                                    for i in range(0,bar-1)]
 
-def DOSplot(fDOS:NDArray[np.float64],Lor:NDArray[np.float64],omega:NDArray[np.float64],name:str,labels:str,log:bool=False,ymax:float=1.2,save:bool=True,fDOScolor:str='b')->Figure:
-    """``DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True,fDOScolor='b')``.\n 
+def polesfDOS(DOSp:NDArray[np.float64],bound:float=3,corrfactor:float=1)->NDArray[np.float64]:
+    """``polesfDOS(DOSp,bound=3,corrfactor=1)``.\n 
+Function that calculates distribution of selected sites based counts of poles derived from DED simulation."""
+    return np.nan_to_num(DOSp/(2*bound/len(DOSp)*sum(DOSp))*corrfactor)
+
+def DOSplot(fDOS:NDArray[np.float64],Lor:NDArray[np.float64],omega:NDArray[np.float64],name:str,labels:str,log:bool=False,ymax:float=1.2,save:bool=True,fDOScolor:str='b',bound:float=0)->Figure:
+    """``DOSplot(fDOS,Lor,omega,name,labels,log=False,ymax=1.2,save=True,fDOScolor='b',bound=0)``.\n 
 A plot function to present results from the AIM moddeling for a single results with a comparison to the non-interacting DOS."""
     fig,axis_font=plt.figure(figsize=(10,8)),{'fontname':'Calibri','size':'25'}
+    if bound==0:bound=max(omega)
     plt.rc('legend',fontsize=17)
     plt.rc('font',size=25)
     plt.rc('xtick',labelsize=25,color='black')
     plt.rc('ytick',labelsize=25,color='black')
-    plt.xlim(min(omega),max(omega))
+    plt.xlim(-bound,bound)
     if not log:
         plt.gca().set_ylim(bottom=0,top=ymax)
-        plt.gca().set_xticks(np.linspace(min(omega),max(omega),2*int(max(omega))+1),minor=False)
+        plt.gca().set_xticks(np.linspace(-bound,bound,2*int(bound)+1),minor=False)
     else: 
         plt.yscale('log')
         plt.gca().set_ylim(bottom=0.0001,top=10)
-        plt.gca().set_xticks(np.linspace(min(omega),max(omega),int(max(omega))+int(max(omega))%2+1),minor=False)
+        plt.gca().set_xticks(np.linspace(-bound,bound,int(bound)+int(bound)%2+1),minor=False)
     plt.xlabel("$\\omega$ [-]",**axis_font,color='black')
     plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**axis_font,color='black')
     plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
