@@ -595,7 +595,7 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         try:
             self.data=json.load(open(self.entry.get()))
             if self.data["simtype"]==self.simtype:
-                self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),np.array(np.array(self.data["AvgSigmadat"],dtype='complex_')*np.array(self.data["Nfin"]),dtype='complex_').squeeze(),np.array(np.array(self.data["nd"],dtype='complex_')*np.array(self.data["Nfin"]),dtype='complex_')
+                self.Nfin,self.omega,self.AvgSigmadat,self.nd=np.array(self.data["Nfin"]),np.array(self.data["omega"]),(np.array(self.data["AvgSigmadat"],dtype='complex_')*np.array(self.data["Nfin"])).squeeze(),np.array(self.data["nd"],dtype='complex_')*np.array(self.data["Nfin"])
                 paraloader(self)
             else:
                 self.entry.delete(0,last_index=tk.END)
@@ -633,7 +633,7 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         self.pbar.reset()
         if self.loaded:
             self.progressbar_1.itnum=self.pbar.n=self.data["Nit"]
-            self.Nfin,self.AvgSigmadat,self.nd,self.telapsed=np.array(self.data["Nfin"]),np.array(self.data["AvgSigmadat"]*self.data["Nfin"]).squeeze(),np.array(np.array(self.data["nd"],dtype=np.complex128)*np.array(self.data["Nfin"],dtype=np.float64),dtype=np.complex128),self.data["telapsed"]
+            self.Nfin,self.AvgSigmadat,self.nd,self.telapsed=np.array(self.data["Nfin"]),(np.array(self.data["AvgSigmadat"],dtype='complex_')*np.array(self.data["Nfin"])).squeeze(),np.array(self.data["nd"],dtype='complex_')*np.array(self.data["Nfin"]),self.data["telapsed"]
         else: 
             self.progressbar_1.itnum=self.pbar.n=0
             self.AvgSigmadat,self.Nfin,self.nd,self.telapsed=np.zeros((len(self.DEDargs[11]),self.DEDargs[13]),dtype='complex_'),np.zeros(len(self.DEDargs[11]),dtype='float'),np.zeros(len(self.DEDargs[11]),dtype='complex_'),0
@@ -664,10 +664,10 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.settings_tab=ctk.CTkTabview(self, width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
-        self.polesratio_label=ctk.CTkLabel(self.scrollable_tab,text="No. of poles per energy interval \u0394\u03C9:",anchor="w")
+        self.polesratio_label=ctk.CTkLabel(self.scrollable_tab,text="No. of poles per\nenergy interval \u0394\u03C9:",anchor="w")
         self.polesratio_label.grid(row=13,column=0,padx=10,pady=(5,0))
         self.polesratio_Entry=ctk.CTkEntry(self.scrollable_tab,placeholder_text='200')
-        self.polesratio_Entry.grid(row=14,column=0,padx=10,pady=(0,0))
+        self.polesratio_Entry.grid(row=14,column=0,padx=10,pady=(2,0))
         self.polesratio_Entry.insert(0,str(self.ratio))
         self.graphcorrfactor_label=ctk.CTkLabel(self.settings_tab.tab("Graph"),text="Correction factor pole Distr.:",anchor="w")
         self.graphcorrfactor_label.grid(row=8,column=0,padx=10,pady=(5,0))
@@ -724,7 +724,9 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.pbar.reset()
         if self.loaded:
             self.progressbar_1.itnum=self.pbar.n=self.data["Nit"]
-            self.Nfin,self.DOSp,self.telapsed=np.array(self.data["Nfin"]),self.data["DOSp"],self.data["telapsed"]
+            self.Nfin,self.DOSp,self.corrfactor,self.telapsed=np.array(self.data["Nfin"]),np.array(self.data["DOSp"]),self.data["corrfactor"],self.data["telapsed"]
+            self.graphcorrfactor_Entry.delete(0,last_index=tk.END)
+            self.graphcorrfactor_Entry.insert(0,str(self.corrfactor))
         else: 
             self.progressbar_1.itnum=self.pbar.n=0
             self.Nfin,self.DOSp,self.telapsed=np.zeros(len(self.DEDargs[11]),dtype='float'),np.zeros(len(self.omegaintrv)-1,dtype='int_'),0
