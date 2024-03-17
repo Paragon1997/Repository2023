@@ -15,6 +15,7 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
+#add pole Distr. for graphene
 #add class instance where you can loop multiple simulations without waiting for start GUI but still shows progress and autosave
 #status bar in window
 #other main functions in seperate windows (graphene, S etc.)
