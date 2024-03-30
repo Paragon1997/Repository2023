@@ -10,13 +10,14 @@ import matplotlib.pyplot as plt
 from DEDlib import *
 import warnings
 import json
+import os
 from ast import literal_eval
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 warnings.filterwarnings("ignore",category=RuntimeWarning)
 
+#add class instance where you can loop multiple simulations without waiting for start GUI but still shows progress and autosave, first create settings input file generator for series
 #add pole Distr. for graphene
-#add class instance where you can loop multiple simulations without waiting for start GUI but still shows progress and autosave
 #status bar in window
 #other main functions in seperate windows (graphene, S etc.)
 #make exe with pyinstaller
@@ -520,26 +521,29 @@ class mainApp(ctk.CTk):
 The main ``customTkinter`` class for the DED Anderson impurity model simulator application window."""
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.app_width,self.app_height,self.top_level_windows=300,200,{"SAIM single sim":SAIMWINDOW,"Sampled poles Distr.":polesWINDOW,"ASAIM single sim":ASAIMWINDOW,"GNR SAIM single sim":GNRWINDOW,"Impurity Entropy":EntropyWINDOW,"Stdev calculator":StdevWINDOW}
+        self.app_width,self.app_height,self.top_level_windows=300,200,{"SAIM simulation":SAIMWINDOW,"Sampled poles Distr.":polesWINDOW,"ASAIM simulation":ASAIMWINDOW,"GNR SAIM simulation":GNRWINDOW,"Impurity Entropy":EntropyWINDOW,"Stdev calculator":StdevWINDOW}
         self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
         self.iconbitmap('DEDicon.ico')
         self.resizable(width=False,height=False)
         self.title("DED simulator menu")
         self.focus()
-        self.grid_rowconfigure((0,1,2),weight=0)
+        self.grid_rowconfigure((0,1,2,3),weight=0)
         self.grid_columnconfigure(0,weight=1)
         self.menu_label=ctk.CTkLabel(self,text="Choose simulation type",font=ctk.CTkFont(size=20,weight="bold"))
         self.menu_label.grid(row=0,column=0,padx=20,pady=(20,10))
-        self.scaling_optionemenu=ctk.CTkOptionMenu(self,width=200,values=["SAIM single sim","Sampled poles Distr.","ASAIM single sim","GNR SAIM single sim","Impurity Entropy","Stdev calculator"])
+        self.scaling_optionemenu=ctk.CTkOptionMenu(self,width=200,values=["SAIM simulation","Sampled poles Distr.","ASAIM simulation","GNR SAIM simulation","Impurity Entropy","Stdev calculator"])
         self.scaling_optionemenu.grid(row=1,column=0,padx=20,pady=(5,0))
+        self.series_switch=ctk.CTkSwitch(self,text="DED series")
+        self.series_switch.grid(row=2,column=0,padx=10,pady=(10,0))
         self.button_open=ctk.CTkButton(self,text="Open",command=lambda:self.open_toplevel(simsel=self.scaling_optionemenu.get()))
-        self.button_open.grid(row=2,column=0,padx=20,pady=(20,20))
+        self.button_open.grid(row=3,column=0,padx=20,pady=(20,20))
         self.protocol('WM_DELETE_WINDOW',self.quitApp)
 
     def open_toplevel(self,simsel):
         """``open_toplevel(self,simsel)``.\n
     Class method to initialize selected window for specific simulation type."""
-        self.toplevel_window=self.top_level_windows[simsel](selfroot=self)
+        if self.series_switch.get():self.toplevel_window=SeriesWINDOW(selfroot=self)
+        else:self.toplevel_window=self.top_level_windows[simsel](selfroot=self)
         self.after(100,self.lower)
         self.scaling_optionemenu.configure(state="disabled")
         self.button_open.configure(state="disabled")
@@ -755,6 +759,86 @@ class EntropyWINDOW(ctk.CTkToplevel):
 
 class StdevWINDOW(ctk.CTkToplevel):
     pass
+
+class SeriesWINDOW(ctk.CTkToplevel):
+    """``SeriesWINDOW(ctk.CTkToplevel)``.\n
+Class for window which can run series of DED simulations."""
+    def __init__(self,selfroot,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.root,self.app_width,self.app_height=selfroot,1100,1160
+        self.title("Distributional Exact Diagonalization series settings")
+        self.geometry(CenterWindowToDisplay(self,self.app_width,self.app_height,self._get_window_scaling()))
+        self.after(200,lambda:self.iconbitmap('DEDicon.ico'))
+        self.resizable(width=False,height=False)
+        self.after(200,self.focus)
+        self.grid_columnconfigure(0,weight=1)
+        self.grid_rowconfigure((0,1),weight=1)
+        self.settings_frame=ctk.CTkFrame(self)
+        self.settings_frame.grid(row=0,column=0,padx=20,pady=(20,10),sticky="nsew")
+        self.settings_frame.grid_rowconfigure((0,1,2,3,4,5),weight=0)
+        self.settings_frame.grid_columnconfigure(0,weight=1)
+        self.sim_frame=ctk.CTkFrame(self)
+        self.sim_frame.grid(row=1,column=0,padx=10,pady=(10,20),sticky="nsew")
+        self.settings_frame.grid_columnconfigure((0,1,2,3),weight=0)
+        self.settings_label=ctk.CTkLabel(self.settings_frame,text="DED settings",font=ctk.CTkFont(size=20,weight="bold"))
+        self.settings_label.grid(row=0,column=0,padx=(20,10),pady=(20,10))
+        self.dic_frame=ctk.CTkFrame(self.settings_frame,height=45,fg_color="transparent")
+        self.dic_frame.grid(row=1,column=0,padx=(20,20),sticky="nsew")
+
+        self.loaddir_entry=ctk.CTkEntry(self.dic_frame,placeholder_text="DEDdata",width=670)
+        self.loaddir_entry.grid(row=0,column=0,columnspan=2,padx=(0,20),pady=10,sticky='nsew')
+
+        self.folder_entry=ctk.CTkEntry(self.dic_frame,placeholder_text="C:\\DEDdata",width=670)
+        self.folder_entry.grid(row=1,column=0,columnspan=2,padx=(0,20),pady=10,sticky='nsew')
+        self.askdir_button=ctk.CTkButton(self.dic_frame,text="Open directory",fg_color="transparent",width=151,border_width=2,text_color=("gray10","#DCE4EE"),command=self.createfolderdir)
+        self.askdir_button.grid(row=1,column=2,padx=10,pady=10,sticky='ew')  
+        self.folder_button=ctk.CTkButton(self.dic_frame,text="Submit directory",fg_color="transparent",width=151,border_width=2,text_color=("gray10","#DCE4EE"),command=self.submitfolderdir)
+        self.folder_button.grid(row=1,column=3,padx=(10,0),pady=10,sticky='ew')
+        self.files_frame=ctk.CTkFrame(self.settings_frame,height=45,fg_color="transparent")
+        self.files_frame.grid(row=2,column=0,padx=(20,20),sticky="nsew")
+        self.files_entry=ctk.CTkEntry(self.files_frame,placeholder_text="['example1.json','example2.json','example3.json','example4.json']",width=851)
+        self.files_entry.grid(row=0,column=0,padx=(0,20),pady=10,sticky='nsew')
+        self.files_button=ctk.CTkButton(self.files_frame,text="Submit filenames",fg_color="transparent",width=151,border_width=2,text_color=("gray10","#DCE4EE"),command=self.submitfilenames)
+        self.files_button.grid(row=0,column=1,padx=0,pady=10,sticky='ew')
+        self.labels_frame=ctk.CTkFrame(self.settings_frame,height=45,fg_color="transparent")
+        self.labels_frame.grid(row=3,column=0,padx=(20,20),sticky="nsew")
+        self.labels_entry=ctk.CTkEntry(self.labels_frame,placeholder_text="['$\\rho_{constr.},N,$n=2','$\\rho_{constr.},N,$n=3','$\\rho_{constr.},N,$n=4','$\\rho_{constr.},N,$n=5']",width=851)
+        self.labels_entry.grid(row=0,column=0,padx=(0,20),pady=10,sticky='nsew')
+        self.labels_button=ctk.CTkButton(self.labels_frame,text="Submit label names",fg_color="transparent",width=151,border_width=2,text_color=("gray10","#DCE4EE"),command=self.submitlabelnames)
+        self.labels_button.grid(row=0,column=1,padx=0,pady=10,sticky='ew')
+        self.textbox_label=ctk.CTkLabel(self.settings_frame,text="Define settings for series DED simulations in the form of a list of tuples (one tupe for each individual simulation with seperate settings)")
+        self.textbox_label.grid(row=4,column=0,padx=10,pady=(20,0))
+        self.settings_textbox=ctk.CTkTextbox(self.settings_frame,width=1000,height=150)
+        self.settings_textbox.grid(row=5,column=0,padx=10)
+        self.protocol('WM_DELETE_WINDOW',lambda:enableroot(self))
+
+    def createfolderdir(self):
+        self.folder=tk.filedialog.askdirectory(initialdir="",title="Select directory to save DED data files")
+        self.root.lower()
+        if self.folder:
+            self.folder_entry.delete(0,last_index=tk.END)
+            self.folder_entry.insert(0,self.folder)
+
+    def submitfolderdir(self):
+        try:
+            if not os.path.isdir(self.folder_entry.get()): os.makedirs(self.folder_entry.get())
+        except:    
+            self.folder_entry.delete(0,last_index=tk.END)
+            self.folder_entry.insert(0,'Try again')
+
+    def submitfilenames(self):
+        try:
+            self.filenames=literal_eval(self.files_entry.get())
+        except:
+            self.files_entry.delete(0,last_index=tk.END)
+            self.files_entry.insert(0,'Try again')
+
+    def submitlabelnames(self):
+        try:
+            self.labelnames=literal_eval(self.labels_entry.get())
+        except:
+            self.labels_entry.delete(0,last_index=tk.END)
+            self.labels_entry.insert(0,'Try again')  
 
 if __name__ == "__main__":
     mainApp().mainloop()
