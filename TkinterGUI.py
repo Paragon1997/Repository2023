@@ -11,6 +11,7 @@ from DEDlib import *
 import warnings
 import json
 import os
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,NavigationToolbar2Tk)
 from ast import literal_eval
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -268,37 +269,53 @@ Function which stops DED calculations in ``loopDED(root)`` and saves progress.""
     elif not root.stopped and not root.paused:pauseDED(root)
 
 def graphwindow(root,omega,fDOS,Lor):
-    root.fig,root.axis_font=plt.figure(figsize=(9.5,7.6),dpi=50*root._get_window_scaling()),{'fontname':'Calibri','size':'19'}
+    root.fig,root.axis_font=mpl.figure.Figure(figsize=(9.5,7.6),dpi=50*root._get_window_scaling()),{'fontname':'Calibri','size':'19'}
+    for widgets in root.plot_frame.winfo_children(): widgets.destroy()
     mpl.rc('axes',edgecolor='white')
     plt.rc('legend',fontsize=14)
     plt.rc('font',size=19)
     plt.rc('xtick',labelsize=17,color='white')
     plt.rc('ytick',labelsize=17,color='white')
-    plt.gca().set_xlim(xmin=-root.DEDargs[14],xmax=root.DEDargs[14])
+    root.subplt=root.fig.add_subplot(111)
+    root.subplt.set_xlim(xmin=-root.DEDargs[14],xmax=root.DEDargs[14])
     if not bool(root.graphlogy_checkbox.get()):
-        plt.gca().set_ylim(bottom=0,top=float(root.graphymax_Entry.get()))
-        plt.gca().set_xticks(np.linspace(-root.DEDargs[14],root.DEDargs[14],2*int(root.DEDargs[14])+1),minor=False)
+        root.subplt.set_ylim(bottom=0,top=float(root.graphymax_Entry.get()))
+        root.subplt.set_xticks(np.linspace(-root.DEDargs[14],root.DEDargs[14],2*int(root.DEDargs[14])+1),minor=False)
     else:
         plt.yscale('log')
-        plt.gca().set_ylim(bottom=0.0001,top=float(root.graphymax_Entry.get()))
-        plt.gca().set_xticks(np.linspace(-root.DEDargs[14],root.DEDargs[14],int(root.DEDargs[14])+int(root.DEDargs[14])%2+1),minor=False)     
-    plt.xlabel("$\\omega$ [-]",**root.axis_font,color='white')
-    plt.gca().set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**root.axis_font,color='white')
-    plt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
-    plt.plot(omega,fDOS,root.graphfDOScolor_Entry.get(),label=root.graphlegend_Entry.get())
-    plt.legend(fancybox=False).get_frame().set_edgecolor('black')
-    plt.grid()
-    plt.tight_layout()
+        root.subplt.set_ylim(bottom=0.0001,top=float(root.graphymax_Entry.get()))
+        root.subplt.set_xticks(np.linspace(-root.DEDargs[14],root.DEDargs[14],int(root.DEDargs[14])+int(root.DEDargs[14])%2+1),minor=False)     
+    root.subplt.set_xlabel("$\\omega$ [-]",**root.axis_font,color='white')
+    root.subplt.set_ylabel("$\\rho$($\\omega$)",va="bottom",rotation=0,labelpad=30,**root.axis_font,color='white')
+    root.subplt.plot(omega,Lor,'--r',linewidth=4,label='$\\rho_0$')
+    root.subplt.plot(omega,fDOS,root.graphfDOScolor_Entry.get(),label=root.graphlegend_Entry.get())
+    root.subplt.legend(fancybox=False,labelcolor="white",facecolor="#242424").get_frame().set_edgecolor('black')
+    root.subplt.grid()
+    root.fig.tight_layout()
     root.fig.set_facecolor("none")
-    plt.gca().set_facecolor("#242424")
+    root.subplt.set_facecolor("#242424")
     root.plot_frame.configure(fg_color="transparent")
-    root.canvas=mpl.backends.backend_tkagg.FigureCanvasTkAgg(root.fig,master=root.plot_frame)
+    root.canvas=FigureCanvasTkAgg(root.fig,master=root.plot_frame)
     root.canvas.get_tk_widget().config(bg="#242424")
     root.canvas.draw()
-    root.canvas.get_tk_widget().grid(row=1,column=1)
-    root.plot_frame.grid_rowconfigure((0,2),weight=1)
-    root.plot_frame.grid_columnconfigure((0,2),weight=1)
-    root.plot_frame.update()
+    root.toolbar=NavigationToolbar2Tk(root.canvas,root.plot_frame)
+    root.canvas.get_tk_widget().pack()
+    root.toolbar._message_label.config(bg="#242424")
+    root.toolbar.config(bg="#242424")
+    for widget in root.toolbar.winfo_children():
+        if isinstance(widget,tk.Frame):widget.destroy()
+    for text,tooltip_text,image_file,callback in root.toolbar.toolitems:
+        if text is None:root.toolbar._Spacer()
+        else:
+            root.toolbar._buttons[text].destroy()
+            if callback in ["zoom","pan"]:root.toolbar._buttons[text]=tk.Checkbutton(master=root.toolbar,text=text,command=getattr(root.toolbar,callback),indicatoron=False,variable=tk.IntVar(master=root.toolbar),offrelief="flat",overrelief="groove",borderwidth=1,bg="#242424",foreground="white",activebackground="#242424")
+            else:root.toolbar._buttons[text]=tk.Button(master=root.toolbar,text=text,command=getattr(root.toolbar,callback),relief="flat",overrelief="groove",borderwidth=1,bg="#242424",foreground="white",activebackground="#242424")
+            root.toolbar._buttons[text]._image_file=str(mpl.cbook._get_data_path(f"images/{image_file}.png"))
+            root.toolbar._set_image_for_button(root.toolbar._buttons[text])
+            root.toolbar._buttons[text].pack(side=tk.LEFT)
+            mpl.backends._backend_tk.ToolTip.createToolTip(root.toolbar._buttons[text],tooltip_text)
+            root.toolbar.set_history_buttons()
+    for button in root.toolbar.winfo_children():button.configure(bg="#242424",foreground="white")
     plt.close()        
 
 def resetDEDwindow(root):
@@ -359,7 +376,8 @@ def DEDwindow(root,name,app_width=1100,app_height=580):
     root.after(200,root.focus)
     root.grid_columnconfigure(1,weight=1)
     root.grid_columnconfigure((2,3,4),weight=0)
-    root.grid_rowconfigure((0,1,2),weight=1)
+    root.grid_rowconfigure(0,weight=1)
+    root.grid_rowconfigure((2,3,4),weight=0)
 
 def parasidebar(root,frame,parainit):
     frame.grid_rowconfigure(16,weight=1)
@@ -408,17 +426,17 @@ def progressframe(root,frame):
     root.progressbar_1=ProgressBar(master=frame,variable=ctk.IntVar(value=0),root=root,itnum=root.pbar.n,Total=root.pbar.total,height=30)
     root.progressbar_1.grid(row=0,column=0,columnspan=6,padx=20,pady=(5,0),sticky="nsew")
     root.start_button=ctk.CTkButton(frame,text="Start",command=lambda:startDED(root))
-    root.start_button.grid(row=1,column=0,padx=4,pady=(5,10))
+    root.start_button.grid(row=1,column=0,padx=4,pady=(5,5))
     root.pause_button=ctk.CTkButton(frame,text="Pause",command=lambda:pauseDED(root))
-    root.pause_button.grid(row=1,column=1,padx=4,pady=(5,10))
+    root.pause_button.grid(row=1,column=1,padx=4,pady=(5,5))
     root.stop_button=ctk.CTkButton(frame,text="Stop",command=lambda:stopDED(root))
-    root.stop_button.grid(row=1,column=2,padx=4,pady=(5,10))
+    root.stop_button.grid(row=1,column=2,padx=4,pady=(5,5))
     root.show_button=ctk.CTkButton(frame,text="Show Graph",command=root.showgraph)
-    root.show_button.grid(row=1,column=3,padx=4,pady=(5,10))
+    root.show_button.grid(row=1,column=3,padx=4,pady=(5,5))
     root.save_button=ctk.CTkButton(frame,text="Save Graph",command=lambda:savegraph(root,root.entry_2))
-    root.save_button.grid(row=1,column=4,padx=4,pady=(5,10))
+    root.save_button.grid(row=1,column=4,padx=4,pady=(5,5))
     root.reset_button=ctk.CTkButton(frame,text="Reset",command=root.resetDED)
-    root.reset_button.grid(row=1,column=5,padx=4,pady=(5,10))
+    root.reset_button.grid(row=1,column=5,padx=4,pady=(5,5))
     root.pause_button.configure(state="disabled")
     root.stop_button.configure(state="disabled")
     root.reset_button.configure(state="disabled")
@@ -568,15 +586,15 @@ Class for Symmetric Anderson impurity model DED simmulation window."""
         self.sidebar_frame=ctk.CTkFrame(self,width=140,corner_radius=0)
         self.sidebar_frame.grid(row=0,column=0,rowspan=5,sticky="nsew")
         parasidebar(self,self.sidebar_frame,self.parainit)
-        self.plot_frame=ctk.CTkFrame(self,width=250,height=380)
-        self.plot_frame.grid(row=0,column=1,columnspan=2,rowspan=1,padx=(20,0),pady=(20,10),sticky="nsew")
+        self.plot_frame=ctk.CTkFrame(self,width=250,height=408)
+        self.plot_frame.grid(row=0,column=1,columnspan=2,padx=(20,0),pady=(20,0),sticky="nsew")
         self.slider_progressbar_frame=ctk.CTkFrame(self)
         self.slider_progressbar_frame.grid(row=1,column=1,columnspan=2,padx=(20,0),pady=(5,0),sticky="nsew")
         progressframe(self,self.slider_progressbar_frame)
         self.file_entry_frame=ctk.CTkFrame(self,height=90,fg_color="transparent")
         self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=2,padx=(20,0),sticky="nsew")
         fileentrytab(self,self.file_entry_frame)
-        self.settings_tab=ctk.CTkTabview(self, width=261)
+        self.settings_tab=ctk.CTkTabview(self,width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
         self.protocol('WM_DELETE_WINDOW',lambda:enableroot(self))
@@ -657,15 +675,15 @@ Class for sampled poles distribution calculator DED simmulation window."""
         self.sidebar_frame=ctk.CTkFrame(self,width=140,corner_radius=0)
         self.sidebar_frame.grid(row=0,column=0,rowspan=5,sticky="nsew")
         parasidebar(self,self.sidebar_frame,self.parainit)
-        self.plot_frame=ctk.CTkFrame(self,width=250,height=380)
-        self.plot_frame.grid(row=0,column=1,columnspan=2,rowspan=1,padx=(20,0),pady=(20,10),sticky="nsew")
+        self.plot_frame=ctk.CTkFrame(self,width=250,height=408)
+        self.plot_frame.grid(row=0,column=1,columnspan=2,rowspan=1,padx=(20,0),pady=(20,0),sticky="nsew")
         self.slider_progressbar_frame=ctk.CTkFrame(self)
         self.slider_progressbar_frame.grid(row=1,column=1,columnspan=2,padx=(20,0),pady=(5,0),sticky="nsew")
         progressframe(self,self.slider_progressbar_frame)
         self.file_entry_frame=ctk.CTkFrame(self,height=90,fg_color="transparent")
         self.file_entry_frame.grid(row=3,column=1,rowspan=2,columnspan=2,padx=(20,0),sticky="nsew")
         fileentrytab(self,self.file_entry_frame)
-        self.settings_tab=ctk.CTkTabview(self, width=261)
+        self.settings_tab=ctk.CTkTabview(self,width=261)
         self.settings_tab.grid(row=0,column=3,rowspan=2,columnspan=2,padx=(20,20),pady=(20,0),sticky="nsew")
         settingstab(self,self.settings_tab)
         self.polesratio_label=ctk.CTkLabel(self.scrollable_tab,text="No. of poles per\nenergy interval \u0394\u03C9:",anchor="w")
@@ -787,7 +805,7 @@ Class for window which can run series of DED simulations."""
 
         self.loaddir_entry=ctk.CTkEntry(self.dic_frame,placeholder_text="DEDdata",width=670)
         self.loaddir_entry.grid(row=0,column=0,columnspan=2,padx=(0,20),pady=10,sticky='nsew')
-
+        #add buttons
         self.folder_entry=ctk.CTkEntry(self.dic_frame,placeholder_text="C:\\DEDdata",width=670)
         self.folder_entry.grid(row=1,column=0,columnspan=2,padx=(0,20),pady=10,sticky='nsew')
         self.askdir_button=ctk.CTkButton(self.dic_frame,text="Open directory",fg_color="transparent",width=151,border_width=2,text_color=("gray10","#DCE4EE"),command=self.createfolderdir)
@@ -810,6 +828,10 @@ Class for window which can run series of DED simulations."""
         self.textbox_label.grid(row=4,column=0,padx=10,pady=(20,0))
         self.settings_textbox=ctk.CTkTextbox(self.settings_frame,width=1000,height=150)
         self.settings_textbox.grid(row=5,column=0,padx=10)
+        #example tuple list in textbox
+
+
+        #create functions for each sim type en connect to plotting functions
         self.protocol('WM_DELETE_WINDOW',lambda:enableroot(self))
 
     def createfolderdir(self):
